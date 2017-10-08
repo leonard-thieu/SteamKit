@@ -41,7 +41,7 @@ namespace SteamKit2
         /// <summary>
         /// This callback is fired in response to <see cref="FindLeaderboard" /> and <see cref="CreateLeaderboard" />.
         /// </summary>
-        public class FindOrCreateLeaderboardCallback : CallbackMsg
+        public class FindOrCreateLeaderboardCallback : CallbackMsg, IFindOrCreateLeaderboardCallback
         {
             /// <summary>
             /// Gets the result of the request.
@@ -78,14 +78,41 @@ namespace SteamKit2
         }
 
         /// <summary>
+        /// This callback is fired in response to <see cref="FindLeaderboard" /> and <see cref="CreateLeaderboard" />.
+        /// </summary>
+        public interface IFindOrCreateLeaderboardCallback : ICallbackMsg
+        {
+            /// <summary>
+            /// Gets the result of the request.
+            /// </summary>
+            EResult Result { get; }
+            /// <summary>
+            /// Leaderboard ID.
+            /// </summary>
+            int ID { get; }
+            /// <summary>
+            /// How many entires there are for requested leaderboard.
+            /// </summary>
+            int EntryCount { get; }
+            /// <summary>
+            /// Sort method to use for this leaderboard.
+            /// </summary>
+            ELeaderboardSortMethod SortMethod { get; }
+            /// <summary>
+            /// Display type for this leaderboard.
+            /// </summary>
+            ELeaderboardDisplayType DisplayType { get; }
+        }
+
+        /// <summary>
         /// This callback is fired in response to <see cref="GetLeaderboardEntries" />.
         /// </summary>
-        public class LeaderboardEntriesCallback : CallbackMsg
+        public class LeaderboardEntriesCallback : CallbackMsg, ILeaderboardEntriesCallback
         {
             /// <summary>
             /// Represents a single package in this response.
             /// </summary>
-            public sealed class LeaderboardEntry
+            public sealed class LeaderboardEntry : ILeaderboardEntry
             {
                 /// <summary>
                 /// Gets the <see cref="SteamID"/> for this entry.
@@ -131,6 +158,33 @@ namespace SteamKit2
             }
 
             /// <summary>
+            /// Represents a single package in this response.
+            /// </summary>
+            public interface ILeaderboardEntry
+            {
+                /// <summary>
+                /// Gets the <see cref="SteamID"/> for this entry.
+                /// </summary>
+                SteamID SteamID { get; }
+                /// <summary>
+                /// Gets the global rank for this entry.
+                /// </summary>
+                int GlobalRank { get; }
+                /// <summary>
+                /// Gets the score for this entry.
+                /// </summary>
+                int Score { get; }
+                /// <summary>
+                /// Gets the <see cref="UGCHandle"/> attached to this entry.
+                /// </summary>
+                UGCHandle UGCId { get; }
+                /// <summary>
+                /// Extra game-defined information regarding how the user got that score.
+                /// </summary>
+                ReadOnlyCollection<int> Details { get; }
+            }
+
+            /// <summary>
             /// Gets the result of the request.
             /// </summary>
             public EResult Result { get; private set; }
@@ -141,7 +195,7 @@ namespace SteamKit2
             /// <summary>
             /// Gets the list of leaderboard entries this response contains.
             /// </summary>
-            public ReadOnlyCollection<LeaderboardEntry> Entries { get; private set; }
+            public ReadOnlyCollection<ILeaderboardEntry> Entries { get; private set; }
 
 
             internal LeaderboardEntriesCallback( JobID jobID, CMsgClientLBSGetLBEntriesResponse resp )
@@ -151,12 +205,31 @@ namespace SteamKit2
                 this.Result = ( EResult )resp.eresult;
                 this.EntryCount = resp.leaderboard_entry_count;
 
-                var list = new List<LeaderboardEntry>();
+                var list = new List<ILeaderboardEntry>();
 
                 list.AddRange( resp.entries.Select( e => new LeaderboardEntry( e ) ) );
 
-                Entries = new ReadOnlyCollection<LeaderboardEntry>( list );
+                Entries = new ReadOnlyCollection<ILeaderboardEntry>( list );
             }
+        }
+
+        /// <summary>
+        /// This callback is fired in response to <see cref="GetLeaderboardEntries" />.
+        /// </summary>
+        public interface ILeaderboardEntriesCallback : ICallbackMsg
+        {
+            /// <summary>
+            /// Gets the result of the request.
+            /// </summary>
+            EResult Result { get; }
+            /// <summary>
+            /// How many entires there are for requested leaderboard.
+            /// </summary>
+            int EntryCount { get; }
+            /// <summary>
+            /// Gets the list of leaderboard entries this response contains.
+            /// </summary>
+            ReadOnlyCollection<LeaderboardEntriesCallback.ILeaderboardEntry> Entries { get; }
         }
     }
 }

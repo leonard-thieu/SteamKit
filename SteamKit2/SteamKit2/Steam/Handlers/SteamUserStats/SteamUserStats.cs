@@ -14,7 +14,7 @@ namespace SteamKit2
     /// <summary>
     /// This handler handles Steam user statistic related actions.
     /// </summary>
-    public sealed partial class SteamUserStats : ClientMsgHandler
+    public sealed partial class SteamUserStats : ClientMsgHandler, ISteamUserStats
     {
         Dictionary<EMsg, Action<IPacketMsg>> dispatchMap;
 
@@ -61,13 +61,13 @@ namespace SteamKit2
 
         /// <summary>
         /// Asks the Steam back-end for a leaderboard by name for a given appid.
-        /// Results are returned in a <see cref="FindOrCreateLeaderboardCallback"/>.
-        /// The returned <see cref="AsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// Results are returned in a <see cref="IFindOrCreateLeaderboardCallback"/>.
+        /// The returned <see cref="IAsyncJob{T}"/> can also be awaited to retrieve the callback result.
         /// </summary>
         /// <param name="appId">The AppID to request a leaderboard for.</param>
         /// <param name="name">Name of the leaderboard to request.</param>
-        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="FindOrCreateLeaderboardCallback"/>.</returns>
-        public AsyncJob<FindOrCreateLeaderboardCallback> FindLeaderboard( uint appId, string name )
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="IFindOrCreateLeaderboardCallback"/>.</returns>
+        public IAsyncJob<IFindOrCreateLeaderboardCallback> FindLeaderboard( uint appId, string name )
         {
             var msg = new ClientMsgProtobuf<CMsgClientLBSFindOrCreateLB>( EMsg.ClientLBSFindOrCreateLB );
             msg.SourceJobID = Client.GetNextJobID();
@@ -81,19 +81,19 @@ namespace SteamKit2
 
             Client.Send( msg );
 
-            return new AsyncJob<FindOrCreateLeaderboardCallback>( this.Client, msg.SourceJobID );
+            return new AsyncJob<IFindOrCreateLeaderboardCallback>( this.Client, msg.SourceJobID );
         }
         /// <summary>
         /// Asks the Steam back-end for a leaderboard by name, and will create it if it's not yet.
-        /// Results are returned in a <see cref="FindOrCreateLeaderboardCallback"/>.
-        /// The returned <see cref="AsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// Results are returned in a <see cref="IFindOrCreateLeaderboardCallback"/>.
+        /// The returned <see cref="IAsyncJob{T}"/> can also be awaited to retrieve the callback result.
         /// </summary>
         /// <param name="appId">The AppID to request a leaderboard for.</param>
         /// <param name="name">Name of the leaderboard to create.</param>
         /// <param name="sortMethod">Sort method to use for this leaderboard</param>
         /// <param name="displayType">Display type for this leaderboard.</param>
-        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="FindOrCreateLeaderboardCallback"/>.</returns>
-        public AsyncJob<FindOrCreateLeaderboardCallback> CreateLeaderboard( uint appId, string name, ELeaderboardSortMethod sortMethod, ELeaderboardDisplayType displayType )
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="IFindOrCreateLeaderboardCallback"/>.</returns>
+        public IAsyncJob<IFindOrCreateLeaderboardCallback> CreateLeaderboard( uint appId, string name, ELeaderboardSortMethod sortMethod, ELeaderboardDisplayType displayType )
         {
             var msg = new ClientMsgProtobuf<CMsgClientLBSFindOrCreateLB>( EMsg.ClientLBSFindOrCreateLB );
             msg.SourceJobID = Client.GetNextJobID();
@@ -109,21 +109,21 @@ namespace SteamKit2
 
             Client.Send( msg );
 
-            return new AsyncJob<FindOrCreateLeaderboardCallback>( this.Client, msg.SourceJobID );
+            return new AsyncJob<IFindOrCreateLeaderboardCallback>( this.Client, msg.SourceJobID );
         }
 
         /// <summary>
         /// Asks the Steam back-end for a set of rows in the leaderboard.
-        /// Results are returned in a <see cref="LeaderboardEntriesCallback"/>.
-        /// The returned <see cref="AsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// Results are returned in a <see cref="ILeaderboardEntriesCallback"/>.
+        /// The returned <see cref="IAsyncJob{T}"/> can also be awaited to retrieve the callback result.
         /// </summary>
         /// <param name="appId">The AppID to request leaderboard rows for.</param>
         /// <param name="id">ID of the leaderboard to view.</param>
-        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="LeaderboardEntriesCallback"/>.</returns>
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="ILeaderboardEntriesCallback"/>.</returns>
         /// <param name="rangeStart">Range start or 0.</param>
         /// <param name="rangeEnd">Range end or max leaderboard entries.</param>
         /// <param name="dataRequest">Type of request.</param>
-        public AsyncJob<LeaderboardEntriesCallback> GetLeaderboardEntries( uint appId, int id, int rangeStart, int rangeEnd, ELeaderboardDataRequest dataRequest )
+        public IAsyncJob<ILeaderboardEntriesCallback> GetLeaderboardEntries( uint appId, int id, int rangeStart, int rangeEnd, ELeaderboardDataRequest dataRequest )
         {
             var msg = new ClientMsgProtobuf<CMsgClientLBSGetLBEntries>( EMsg.ClientLBSGetLBEntries );
             msg.SourceJobID = Client.GetNextJobID();
@@ -139,7 +139,7 @@ namespace SteamKit2
 
             Client.Send( msg );
 
-            return new AsyncJob<LeaderboardEntriesCallback>( this.Client, msg.SourceJobID );
+            return new AsyncJob<ILeaderboardEntriesCallback>( this.Client, msg.SourceJobID );
         }
 
         /// <summary>
@@ -184,5 +184,44 @@ namespace SteamKit2
             Client.PostCallback( callback );
         }
         #endregion
+    }
+
+    /// <summary>
+    /// This handler handles Steam user statistic related actions.
+    /// </summary>
+    public interface ISteamUserStats
+    {
+        /// <summary>
+        /// Asks the Steam back-end for a leaderboard by name for a given appid.
+        /// Results are returned in a <see cref="SteamUserStats.IFindOrCreateLeaderboardCallback"/>.
+        /// The returned <see cref="IAsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// </summary>
+        /// <param name="appId">The AppID to request a leaderboard for.</param>
+        /// <param name="name">Name of the leaderboard to request.</param>
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="SteamUserStats.IFindOrCreateLeaderboardCallback"/>.</returns>
+        IAsyncJob<SteamUserStats.IFindOrCreateLeaderboardCallback> FindLeaderboard(uint appId, string name);
+        /// <summary>
+        /// Asks the Steam back-end for a leaderboard by name, and will create it if it's not yet.
+        /// Results are returned in a <see cref="SteamUserStats.IFindOrCreateLeaderboardCallback"/>.
+        /// The returned <see cref="IAsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// </summary>
+        /// <param name="appId">The AppID to request a leaderboard for.</param>
+        /// <param name="name">Name of the leaderboard to create.</param>
+        /// <param name="sortMethod">Sort method to use for this leaderboard</param>
+        /// <param name="displayType">Display type for this leaderboard.</param>
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="SteamUserStats.IFindOrCreateLeaderboardCallback"/>.</returns>
+        IAsyncJob<SteamUserStats.IFindOrCreateLeaderboardCallback> CreateLeaderboard(uint appId, string name, ELeaderboardSortMethod sortMethod, ELeaderboardDisplayType displayType);
+        /// <summary>
+        /// Asks the Steam back-end for a set of rows in the leaderboard.
+        /// Results are returned in a <see cref="SteamUserStats.ILeaderboardEntriesCallback"/>.
+        /// The returned <see cref="IAsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// </summary>
+        /// <param name="appId">The AppID to request leaderboard rows for.</param>
+        /// <param name="id">ID of the leaderboard to view.</param>
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="SteamUserStats.ILeaderboardEntriesCallback"/>.</returns>
+        /// <param name="rangeStart">Range start or 0.</param>
+        /// <param name="rangeEnd">Range end or max leaderboard entries.</param>
+        /// <param name="dataRequest">Type of request.</param>
+        IAsyncJob<SteamUserStats.ILeaderboardEntriesCallback> GetLeaderboardEntries(uint appId, int id, int rangeStart, int rangeEnd, ELeaderboardDataRequest dataRequest);
     }
 }

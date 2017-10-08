@@ -21,7 +21,7 @@ namespace SteamKit2.Internal
     /// <summary>
     /// This base client handles the underlying connection to a CM server. This class should not be use directly, but through the <see cref="SteamClient"/> class.
     /// </summary>
-    public abstract class CMClient
+    public abstract class CMClient : ICMClient
     {
         /// <summary>
         /// Bootstrap list of CM servers.
@@ -618,5 +618,95 @@ namespace SteamKit2.Internal
             SessionToken = sessToken.Body.token;
         }
         #endregion
+    }
+
+    /// <summary>
+    /// This base client handles the underlying connection to a CM server. This class should not be use directly, but through the <see cref="SteamClient"/> class.
+    /// </summary>
+    public interface ICMClient
+    {
+        /// <summary>
+        /// Returns the the local IP of this client.
+        /// </summary>
+        /// <returns>The local IP.</returns>
+        IPAddress LocalIP { get; }
+        /// <summary>
+        /// Gets the connected universe of this client.
+        /// This value will be <see cref="EUniverse.Invalid"/> if the client is not connected to Steam.
+        /// </summary>
+        /// <value>The universe.</value>
+        EUniverse ConnectedUniverse { get; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is connected to the remote CM server.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is connected; otherwise, <c>false</c>.
+        /// </value>
+        bool IsConnected { get; }
+        /// <summary>
+        /// Gets the session token assigned to this client from the AM.
+        /// </summary>
+        ulong SessionToken { get; }
+        /// <summary>
+        /// Gets the Steam recommended Cell ID of this client. This value is assigned after a logon attempt has succeeded.
+        /// This value will be <c>null</c> if the client is logged off of Steam.
+        /// </summary>
+        uint? CellID { get; }
+        /// <summary>
+        /// Gets the session ID of this client. This value is assigned after a logon attempt has succeeded.
+        /// This value will be <c>null</c> if the client is logged off of Steam.
+        /// </summary>
+        /// <value>The session ID.</value>
+        int? SessionID { get; }
+        /// <summary>
+        /// Gets the SteamID of this client. This value is assigned after a logon attempt has succeeded.
+        /// This value will be <c>null</c> if the client is logged off of Steam.
+        /// </summary>
+        /// <value>The SteamID.</value>
+        SteamID SteamID { get; }
+        /// <summary>
+        /// Gets or sets the connection timeout used when connecting to the Steam server.
+        /// The default value is 5 seconds.
+        /// </summary>
+        /// <value>
+        /// The connection timeout.
+        /// </value>
+        TimeSpan ConnectionTimeout { get; set; }
+        /// <summary>
+        /// Gets or sets the network listening interface. Use this for debugging only.
+        /// For your convenience, you can use <see cref="NetHookNetworkListener"/> class.
+        /// </summary>
+        IDebugNetworkListener DebugNetworkListener { get; set; }
+
+        /// <summary>
+        /// Connects this client to a Steam3 server.
+        /// This begins the process of connecting and encrypting the data channel between the client and the server.
+        /// Results are returned asynchronously in a <see cref="SteamClient.ConnectedCallback"/>.
+        /// If the server that SteamKit attempts to connect to is down, a <see cref="SteamClient.DisconnectedCallback"/>
+        /// will be posted instead.
+        /// SteamKit will not attempt to reconnect to Steam, you must handle this callback and call Connect again
+        /// preferrably after a short delay.
+        /// </summary>
+        /// <param name="cmServer">
+        /// The <see cref="IPEndPoint"/> of the CM server to connect to.
+        /// If <c>null</c>, SteamKit will randomly select a CM server from its internal list.
+        /// </param>
+        void Connect(IPEndPoint cmServer = null);
+        /// <summary>
+        /// Disconnects this client.
+        /// </summary>
+        void Disconnect();
+        /// <summary>
+        /// Sends the specified client message to the server.
+        /// This method automatically assigns the correct SessionID and SteamID of the message.
+        /// </summary>
+        /// <param name="msg">The client message to send.</param>
+        void Send(IClientMsg msg);
+        /// <summary>
+        /// Returns the list of servers matching the given type
+        /// </summary>
+        /// <param name="type">Server type requested</param>
+        /// <returns>List of server endpoints</returns>
+        List<IPEndPoint> GetServersOfType(EServerType type);
     }
 }

@@ -82,7 +82,7 @@ namespace SteamKit2
     /// The base class for awaitable versions of a <see cref="JobID"/>.
     /// Should not be used or constructed directly, but rather with <see cref="AsyncJob{T}"/>.
     /// </summary>
-    public abstract class AsyncJob
+    public abstract class AsyncJob : IAsyncJob
     {
         DateTime jobStart;
 
@@ -117,7 +117,7 @@ namespace SteamKit2
         /// </summary>
         /// <param name="callback">The callback.</param>
         /// <returns><c>true</c> if this result completes the set; otherwise, <c>false</c>.</returns>
-        internal abstract bool AddResult( CallbackMsg callback );
+        internal abstract bool AddResult( ICallbackMsg callback );
 
         /// <summary>
         /// Sets this job as failed, either remotely or due to a message timeout.
@@ -139,12 +139,28 @@ namespace SteamKit2
     }
 
     /// <summary>
+    /// The base class for awaitable versions of a <see cref="JobID"/>.
+    /// Should not be used or constructed directly, but rather with <see cref="AsyncJob{T}"/>.
+    /// </summary>
+    public interface IAsyncJob
+    {
+        /// <summary>
+        /// Gets the <see cref="SteamKit2.JobID"/> for this job.
+        /// </summary>
+        JobID JobID { get; }
+        /// <summary>
+        /// Gets or sets the period of time before this job will be considered timed out and will be canceled. By default this is 10 seconds.
+        /// </summary>
+        TimeSpan Timeout { get; set; }
+    }
+
+    /// <summary>
     /// Represents an awaitable version of a <see cref="JobID"/>.
     /// Can either be converted to a TPL <see cref="Task"/> with <see cref="ToTask"/> or can be awaited directly.
     /// </summary>
     /// <typeparam name="T">The callback type that will be returned by this async job.</typeparam>
-    public sealed class AsyncJob<T> : AsyncJob
-        where T : CallbackMsg
+    public sealed class AsyncJob<T> : AsyncJob, IAsyncJob<T>
+        where T : ICallbackMsg
     {
         TaskCompletionSource<T> tcs;
 
@@ -184,7 +200,7 @@ namespace SteamKit2
         /// </summary>
         /// <param name="callback">The callback.</param>
         /// <returns>Always <c>true</c>.</returns>
-        internal override bool AddResult( CallbackMsg callback )
+        internal override bool AddResult( ICallbackMsg callback )
         {
             if ( callback == null )
             {
@@ -219,6 +235,24 @@ namespace SteamKit2
             }
             
         }
+    }
+
+    /// <summary>
+    /// Represents an awaitable version of a <see cref="JobID"/>.
+    /// Can either be converted to a TPL <see cref="Task"/> with <see cref="ToTask"/> or can be awaited directly.
+    /// </summary>
+    /// <typeparam name="T">The callback type that will be returned by this async job.</typeparam>
+    public interface IAsyncJob<T> : IAsyncJob where T : ICallbackMsg
+    {
+        /// <summary>
+        /// Converts this <see cref="AsyncJob{T}"/> instance into a TPL <see cref="Task{T}"/>.
+        /// </summary>
+        /// <returns></returns>
+        Task<T> ToTask();
+        /// <summary>Gets an awaiter used to await this <see cref="AsyncJob{T}"/>.</summary>
+        /// <returns>An awaiter instance.</returns>
+        /// <remarks>This method is intended for compiler use rather than use directly in code.</remarks>
+        TaskAwaiter<T> GetAwaiter();
     }
 
     /// <summary>
@@ -296,7 +330,7 @@ namespace SteamKit2
         /// </summary>
         /// <param name="callback">The callback.</param>
         /// <returns><c>true</c> if this result completes the set; otherwise, <c>false</c>.</returns>
-        internal override bool AddResult( CallbackMsg callback )
+        internal override bool AddResult( ICallbackMsg callback )
         {
             if ( callback == null )
             {

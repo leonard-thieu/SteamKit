@@ -130,7 +130,7 @@ namespace SteamKit2
     /// In order to bind callbacks to functions, an instance of this class must be created for the
     /// <see cref="SteamClient"/> instance that will be posting callbacks.
     /// </summary>
-    public sealed class CallbackManager
+    public sealed class CallbackManager : ICallbackManager
     {
         SteamClient client;
 
@@ -287,5 +287,51 @@ namespace SteamKit2
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// This class is a utility for routing callbacks to function calls.
+    /// In order to bind callbacks to functions, an instance of this class must be created for the
+    /// <see cref="SteamClient"/> instance that will be posting callbacks.
+    /// </summary>
+    public interface ICallbackManager
+    {
+        /// <summary>
+        /// Runs a single queued callback.
+        /// If no callback is queued, this method will instantly return.
+        /// </summary>
+        void RunCallbacks();
+        /// <summary>
+        /// Blocks the current thread to run a single queued callback.
+        /// If no callback is queued, the method will block for the given timeout.
+        /// </summary>
+        /// <param name="timeout">The length of time to block.</param>
+        void RunWaitCallbacks(TimeSpan timeout);
+        /// <summary>
+        /// Blocks the current thread to run all queued callbacks.
+        /// If no callback is queued, the method will block for the given timeout.
+        /// </summary>
+        /// <param name="timeout">The length of time to block.</param>
+        void RunWaitAllCallbacks(TimeSpan timeout);
+        /// <summary>
+        /// Blocks the current thread to run a single queued callback.
+        /// If no callback is queued, the method will block until one is posted.
+        /// </summary>
+        void RunWaitCallbacks();
+        /// <summary>
+        /// Registers the provided <see cref="Action{T}"/> to receive callbacks of type <typeparamref name="TCallback" />.
+        /// </summary>
+        /// <param name="jobID">The <see cref="JobID"/> of the callbacks that should be subscribed to.
+        ///		If this is <see cref="JobID.Invalid"/>, all callbacks of type <typeparamref name="TCallback" /> will be recieved.</param>
+        /// <param name="callbackFunc">The function to invoke with the callback.</param>
+        /// <typeparam name="TCallback">The type of callback to subscribe to.</typeparam>
+        /// <returns>An <see cref="IDisposable"/>. Disposing of the return value will unsubscribe the <paramref name="callbackFunc"/>.</returns>
+        IDisposable Subscribe<TCallback>(JobID jobID, Action<TCallback> callbackFunc) where TCallback : class, ICallbackMsg;
+        /// <summary>
+        /// Registers the provided <see cref="Action{T}"/> to receive callbacks of type <typeparam name="TCallback" />.
+        /// </summary>
+        /// <param name="callbackFunc">The function to invoke with the callback.</param>
+        /// <returns>An <see cref="IDisposable"/>. Disposing of the return value will unsubscribe the <paramref name="callbackFunc"/>.</returns>
+        IDisposable Subscribe<TCallback>(Action<TCallback> callbackFunc) where TCallback : class, ICallbackMsg;
     }
 }

@@ -21,7 +21,7 @@ namespace SteamKit2
     /// Represents a single client that connects to the Steam3 network.
     /// This class is also responsible for handling the registration of client message handlers and callbacks.
     /// </summary>
-    public sealed partial class SteamClient : CMClient
+    public sealed partial class SteamClient : CMClient, ISteamClient
     {
         Dictionary<Type, ClientMsgHandler> handlers;
 
@@ -407,5 +407,97 @@ namespace SteamKit2
             jobManager.FailJob( packetMsg.TargetJobID );
         }
 
+    }
+
+    /// <summary>
+    /// Represents a single client that connects to the Steam3 network.
+    /// This class is also responsible for handling the registration of client message handlers and callbacks.
+    /// </summary>
+    public interface ISteamClient : ICMClient
+    {
+        /// <summary>
+        /// Adds a new handler to the internal list of message handlers.
+        /// </summary>
+        /// <param name="handler">The handler to add.</param>
+        /// <exception cref="InvalidOperationException">A handler of that type is already registered.</exception>
+        void AddHandler(ClientMsgHandler handler);
+        /// <summary>
+        /// Removes a registered handler by name.
+        /// </summary>
+        /// <param name="handler">The handler name to remove.</param>
+        void RemoveHandler(Type handler);
+        /// <summary>
+        /// Removes a registered handler.
+        /// </summary>
+        /// <param name="handler">The handler to remove.</param>
+        void RemoveHandler(ClientMsgHandler handler);
+        /// <summary>
+        /// Returns a registered handler.
+        /// </summary>
+        /// <typeparam name="T">The type of the handler to cast to. Must derive from ClientMsgHandler.</typeparam>
+        /// <returns>
+        /// A registered handler on success, or null if the handler could not be found.
+        /// </returns>
+        T GetHandler<T>() where T : ClientMsgHandler;
+        /// <summary>
+        /// Gets the next callback object in the queue.
+        /// This function does not dequeue the callback, you must call FreeLastCallback after processing it.
+        /// </summary>
+        /// <returns>The next callback in the queue, or null if no callback is waiting.</returns>
+        ICallbackMsg GetCallback();
+        /// <summary>
+        /// Gets the next callback object in the queue, and optionally frees it.
+        /// </summary>
+        /// <param name="freeLast">if set to <c>true</c> this function also frees the last callback if one existed.</param>
+        /// <returns>The next callback in the queue, or null if no callback is waiting.</returns>
+        ICallbackMsg GetCallback(bool freeLast);
+        /// <summary>
+        /// Blocks the calling thread until a callback object is posted to the queue.
+        /// This function does not dequeue the callback, you must call FreeLastCallback after processing it.
+        /// </summary>
+        /// <returns>The callback object from the queue.</returns>
+        ICallbackMsg WaitForCallback();
+        /// <summary>
+        /// Blocks the calling thread until a callback object is posted to the queue, or null after the timeout has elapsed.
+        /// This function does not dequeue the callback, you must call FreeLastCallback after processing it.
+        /// </summary>
+        /// <param name="timeout">The length of time to block.</param>
+        /// <returns>A callback object from the queue if a callback has been posted, or null if the timeout has elapsed.</returns>
+        ICallbackMsg WaitForCallback(TimeSpan timeout);
+        /// <summary>
+        /// Blocks the calling thread until a callback object is posted to the queue, and optionally frees it.
+        /// </summary>
+        /// <param name="freeLast">if set to <c>true</c> this function also frees the last callback.</param>
+        /// <returns>The callback object from the queue.</returns>
+        ICallbackMsg WaitForCallback(bool freeLast);
+        /// <summary>
+        /// Blocks the calling thread until a callback object is posted to the queue, and optionally frees it.
+        /// </summary>
+        /// <param name="freeLast">if set to <c>true</c> this function also frees the last callback.</param>
+        /// <param name="timeout">The length of time to block.</param>
+        /// <returns>A callback object from the queue if a callback has been posted, or null if the timeout has elapsed.</returns>
+        ICallbackMsg WaitForCallback(bool freeLast, TimeSpan timeout);
+        /// <summary>
+        /// Blocks the calling thread until the queue contains a callback object. Returns all callbacks, and optionally frees them.
+        /// </summary>
+        /// <param name="freeLast">if set to <c>true</c> this function also frees all callbacks.</param>
+        /// <param name="timeout">The length of time to block.</param>
+        /// <returns>All current callback objects in the queue.</returns>
+        IEnumerable<ICallbackMsg> GetAllCallbacks(bool freeLast, TimeSpan timeout);
+        /// <summary>
+        /// Frees the last callback in the queue.
+        /// </summary>
+        void FreeLastCallback();
+        /// <summary>
+        /// Returns the next available JobID for job based messages.
+        /// This function is thread-safe.
+        /// </summary>
+        /// <returns>The next available JobID.</returns>
+        JobID GetNextJobID();
+        /// <summary>
+        /// Posts a callback to the queue. This is normally used directly by client message handlers.
+        /// </summary>
+        /// <param name="msg">The message.</param>
+        void PostCallback(CallbackMsg msg);
     }
 }
