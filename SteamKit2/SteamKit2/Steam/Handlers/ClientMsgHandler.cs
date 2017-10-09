@@ -9,7 +9,7 @@ namespace SteamKit2
     /// <summary>
     /// This class implements the base requirements every message handler should inherit from.
     /// </summary>
-    public abstract class ClientMsgHandler : IClientMsgHandler
+    public abstract class ClientMsgHandler
     {
 
         /// <summary>
@@ -48,17 +48,5 @@ namespace SteamKit2
         /// </summary>
         /// <param name="packetMsg">The packet message that contains the data.</param>
         public abstract void HandleMsg( IPacketMsg packetMsg );
-    }
-
-    /// <summary>
-    /// This class implements the base requirements every message handler should inherit from.
-    /// </summary>
-    public interface IClientMsgHandler
-    {
-        /// <summary>
-        /// Handles a client message. This should not be called directly.
-        /// </summary>
-        /// <param name="packetMsg">The packet message that contains the data.</param>
-        void HandleMsg(IPacketMsg packetMsg);
     }
 }
