@@ -1,10 +1,7 @@
 # SteamKit2
 
-[![Build Status (Mono)](https://img.shields.io/travis/SteamRE/SteamKit/master.svg?style=flat-square&label=Mono)](https://travis-ci.org/SteamRE/SteamKit)
-[![Build Status (Windows)](https://img.shields.io/appveyor/ci/SteamRE/SteamKit/master.svg?style=flat-square&label=Windows)](https://ci.appveyor.com/project/SteamRE/SteamKit)
-[![NuGet](https://img.shields.io/nuget/v/SteamKit2.svg?style=flat-square)](https://www.nuget.org/packages/SteamKit2/)
-[![Code Coverage](https://img.shields.io/badge/Code-Coverage-007ec6.svg?style=flat-square)](https://codecov.io/github/SteamRE/SteamKit)
-
+[![Build status](https://ci.appveyor.com/api/projects/status/rvbwhn15yiooeyi3/branch/master2?svg=true)](https://ci.appveyor.com/project/leonard-thieu/steamkit/branch/master2)
+[![MyGet](https://img.shields.io/myget/toofz/v/SteamKit2.svg)](https://www.myget.org/feed/toofz/package/nuget/SteamKit2)
 
 SteamKit2 is a .NET library designed to interoperate with Valve's [Steam network](http://store.steampowered.com/about). It aims to provide a simple, yet extensible, interface to perform various actions on the network.
 
