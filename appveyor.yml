@@ -23,6 +23,7 @@ init:
   - git config --global core.autocrlf true
 
 install:
+  - cd %PROJECT%
   - git clone https://github.com/leonard-thieu/toofz-build.git Scripts
   
 before_build:

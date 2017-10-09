@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.16
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Steam Language", "Steam Language", "{9B9ED32F-938F-4CC1-B3EC-AE94BB102FC1}"
 	ProjectSection(SolutionItems) = preProject
 		..\Resources\SteamLanguage\emsg.steamd = ..\Resources\SteamLanguage\emsg.steamd
@@ -17,6 +19,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamLanguageParser", "..\Resources\SteamLanguageParser\SteamLanguageParser.csproj", "{EBF5B7D5-58F4-4F68-A997-1BE71A72F078}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{12C745D3-CA88-466A-86AD-62D54D9806E5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E209F5A0-4628-4F25-9371-56E74FCB45C1}"
+	ProjectSection(SolutionItems) = preProject
+		..\appveyor.yml = ..\appveyor.yml
+		..\readme.md = ..\readme.md
+		SteamKit2.nuspec = SteamKit2.nuspec
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,5 +68,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C2D106C1-739F-4600-AB7C-A634B0AF2D0E}
 	EndGlobalSection
 EndGlobal
