@@ -125,8 +125,7 @@ namespace SteamKit2
         /// <returns>
         /// A registered handler on success, or null if the handler could not be found.
         /// </returns>
-        public T GetHandler<T>()
-            where T : ClientMsgHandler
+        public T GetHandler<T>() where T : class, IClientMsgHandler
         {
             Type type = typeof( T );
 
@@ -438,7 +437,7 @@ namespace SteamKit2
         /// <returns>
         /// A registered handler on success, or null if the handler could not be found.
         /// </returns>
-        T GetHandler<T>() where T : ClientMsgHandler;
+        T GetHandler<T>() where T : class, IClientMsgHandler;
         /// <summary>
         /// Gets the next callback object in the queue.
         /// This function does not dequeue the callback, you must call FreeLastCallback after processing it.

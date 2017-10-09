@@ -189,7 +189,7 @@ namespace SteamKit2
     /// <summary>
     /// This handler handles Steam user statistic related actions.
     /// </summary>
-    public interface ISteamUserStats
+    public interface ISteamUserStats : IClientMsgHandler
     {
         /// <summary>
         /// Asks the Steam back-end for a leaderboard by name for a given appid.
