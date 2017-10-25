@@ -173,7 +173,7 @@ namespace SteamKit2
         public AsyncJob( SteamClient client, JobID jobId )
             : base( client, jobId )
         {
-            tcs = new TaskCompletionSource<T>();
+            tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
 
@@ -301,7 +301,7 @@ namespace SteamKit2
         public AsyncJobMultiple( SteamClient client, JobID jobId, Predicate<T> finishCondition )
                     : base( client, jobId )
         {
-            tcs = new TaskCompletionSource<ResultSet>();
+            tcs = new TaskCompletionSource<ResultSet>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             this.finishCondition = finishCondition;
         }
