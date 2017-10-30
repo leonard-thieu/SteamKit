@@ -30,7 +30,7 @@ using System.Runtime.InteropServices;
 [assembly: Guid( "cd42d0bc-72e4-451e-bcd0-5d09c4bca2a9" )]
 
 // These are automatically modified by AppVeyor for CI builds and automated deployment.
-[assembly: AssemblyVersion("4.0.1.0")]
+[assembly: AssemblyVersion("4.0.2.0")]
 
 #if DEBUG
 [assembly: InternalsVisibleTo( "Tests" )]
