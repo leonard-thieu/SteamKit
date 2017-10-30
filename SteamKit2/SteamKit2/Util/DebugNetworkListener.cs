@@ -49,10 +49,9 @@ namespace SteamKit2
         /// </summary>
         public NetHookNetworkListener()
         {
-            var uri = new Uri( System.Reflection.Assembly.GetExecutingAssembly().CodeBase );
-
+            var directory = Path.GetDirectoryName( new Uri( GetType().Assembly.CodeBase ).LocalPath );
             LogDirectory = Path.Combine(
-                Path.GetDirectoryName( uri.LocalPath ),
+                directory,
                 "nethook",
                 DateUtils.DateTimeToUnixTime( DateTime.Now ).ToString()
             );

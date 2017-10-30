@@ -46,7 +46,7 @@ namespace NetHookAnalyzer2
 						new TF2CacheSubscribedGCSpecialization(),
 						new TF2SOMultipleObjectsGCSpecialization(),
 						new TF2SOSingleObjectGCSpecialization(),
-                    }
+					}
 				}
 			};
 		}
@@ -185,7 +185,12 @@ namespace NetHookAnalyzer2
 			RepopulateListBox();
 		}
 
-		void searchTextBox_TextChanged(object sender, EventArgs e)
+		void OnShowAllCheckedChanged(object sender, EventArgs e)
+		{
+			RepopulateTreeView();
+		}
+
+		void SearchTextBox_TextChanged(object sender, EventArgs e)
 		{
 			RepopulateListBox();
 		}
@@ -359,7 +364,7 @@ namespace NetHookAnalyzer2
 
 		TreeNode BuildTree(NetHookItem item)
 		{
-			return new NetHookItemTreeBuilder(item) { Specializations = specializations }.BuildTree();
+			return new NetHookItemTreeBuilder(item) { Specializations = specializations }.BuildTree(showAllCheckBox.Checked);
 		}
 
 		void OnAutomaticallySelectNewItemsCheckedChanged(object sender, EventArgs e)

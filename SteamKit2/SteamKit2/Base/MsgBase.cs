@@ -3,6 +3,7 @@
  * file 'license.txt', which is part of this source code package.
  */
 
+using System;
 using System.IO;
 using System.Text;
 using SteamKit2.Internal;
@@ -79,11 +80,11 @@ namespace SteamKit2
         /// <summary>
         /// Returns a <see cref="System.IO.MemoryStream"/> which is the backing stream for client message payload data.
         /// </summary>
-        public MemoryStream Payload { get; private set; }
+        public MemoryStream Payload { get; }
 
 
-        BinaryReader reader;
-        BinaryWriter writer;
+        readonly BinaryReader reader;
+        readonly BinaryWriter writer;
 
 
         /// <summary>
@@ -205,7 +206,7 @@ namespace SteamKit2
         /// <param name="data">The string to write.</param>
         public void Write( string data )
         {
-            Write( data, Encoding.Default );
+            Write( data, Encoding.GetEncoding( 0 ) );
         }
         /// <summary>
         /// Writes the specified string to the message payload using the specified encoding.
@@ -216,7 +217,14 @@ namespace SteamKit2
         public void Write( string data, Encoding encoding )
         {
             if ( data == null )
+            {
                 return;
+            }
+
+            if ( encoding == null )
+            {
+                throw new ArgumentNullException( nameof(encoding) );
+            }
 
             Write( encoding.GetBytes( data ) );
         }
@@ -227,7 +235,7 @@ namespace SteamKit2
         /// <param name="data">The string to write.</param>
         public void WriteNullTermString( string data )
         {
-            WriteNullTermString( data, Encoding.Default );
+            WriteNullTermString( data, Encoding.GetEncoding( 0 ) );
         }
         /// <summary>
         /// Writes the specified string and a null terminator to the message payload using the specified encoding.
@@ -408,7 +416,7 @@ namespace SteamKit2
         /// <returns>The string.</returns>
         public string ReadNullTermString()
         {
-            return ReadNullTermString( Encoding.Default );
+            return ReadNullTermString( Encoding.GetEncoding( 0 ) );
         }
         /// <summary>
         /// Reads a null terminated string from the message payload with the specified encoding.
@@ -417,6 +425,11 @@ namespace SteamKit2
         /// /// <returns>The string.</returns>
         public string ReadNullTermString( Encoding encoding )
         {
+            if ( encoding == null )
+            {
+                throw new ArgumentNullException( nameof(encoding) );
+            }
+
             return Payload.ReadNullTermString( encoding );
         }
 
@@ -479,7 +492,7 @@ namespace SteamKit2
         /// <summary>
         /// Gets the header for this message type. 
         /// </summary>
-        public HdrType Header { get; private set; }
+        public HdrType Header { get; }
 
 
         /// <summary>

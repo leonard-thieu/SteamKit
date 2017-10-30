@@ -6,11 +6,11 @@
 
 
 using System;
-using System.Collections.Concurrent;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
 using ProtoBuf;
 using SteamKit2.Internal;
@@ -23,7 +23,7 @@ namespace SteamKit2
     /// </summary>
     public sealed partial class SteamClient : CMClient, ISteamClient
     {
-        Dictionary<Type, ClientMsgHandler> handlers;
+        OrderedDictionary handlers;
 
         long currentJobId = 0;
         DateTime processStartTime;
@@ -35,21 +35,30 @@ namespace SteamKit2
 
         internal AsyncJobManager jobManager;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SteamClient"/> class with the default configuration.
+        /// </summary>
+        public SteamClient()
+            : this( SteamConfiguration.CreateDefault() )
+        {
+        }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SteamClient"/> class with a specific connection type.
+        /// Initializes a new instance of the <see cref="SteamClient"/> class with a specific configuration.
         /// </summary>
-        /// <param name="type">The connection type to use.</param>
-        public SteamClient( ProtocolType type = ProtocolType.Tcp )
-            : base( type )
+        /// <param name="configuration">The configuration to use for this client.</param>
+        /// <exception cref="ArgumentNullException">The configuration object is <c>null</c></exception>
+        public SteamClient( SteamConfiguration configuration )
+            : base( configuration )
         {
             callbackQueue = new Queue<ICallbackMsg>();
 
-            this.handlers = new Dictionary<Type, ClientMsgHandler>();
+            this.handlers = new OrderedDictionary();
 
             // add this library's handlers
-            this.AddHandler( new SteamUser() );
+            // notice: SteamFriends should be added before SteamUser due to AccountInfoCallback
             this.AddHandler( new SteamFriends() );
+            this.AddHandler( new SteamUser() );
             this.AddHandler( new SteamApps() );
             this.AddHandler( new SteamGameCoordinator() );
             this.AddHandler( new SteamGameServer() );
@@ -68,9 +77,6 @@ namespace SteamKit2
 
             dispatchMap = new Dictionary<EMsg, Action<IPacketMsg>>
             {
-                // we're interested in this client message to post the connected callback
-                { EMsg.ChannelEncryptResult, HandleEncryptResult },
-
                 { EMsg.ClientCMList, HandleCMList },
                 { EMsg.ClientServerList, HandleServerList },
 
@@ -91,11 +97,14 @@ namespace SteamKit2
         /// <exception cref="InvalidOperationException">A handler of that type is already registered.</exception>
         public void AddHandler( ClientMsgHandler handler )
         {
-            if ( handlers.ContainsKey( handler.GetType() ) )
+            if ( handlers.Contains( handler.GetType() ) )
+            {
                 throw new InvalidOperationException( string.Format( "A handler of type \"{0}\" is already registered.", handler.GetType() ) );
 
-            handlers[ handler.GetType() ] = handler;
+            }
+
             handler.Setup( this );
+            handlers[ handler.GetType() ] = handler;
         }
 
         /// <summary>
@@ -104,9 +113,6 @@ namespace SteamKit2
         /// <param name="handler">The handler name to remove.</param>
         public void RemoveHandler( Type handler )
         {
-            if ( !handlers.ContainsKey( handler ) )
-                return;
-
             handlers.Remove( handler );
         }
         /// <summary>
@@ -130,8 +136,10 @@ namespace SteamKit2
         {
             Type type = typeof( T );
 
-            if ( handlers.ContainsKey( type ) )
+            if ( handlers.Contains( type ) )
+            {
                 return handlers[ type ] as T;
+            }
 
             return null;
         }
@@ -325,8 +333,7 @@ namespace SteamKit2
                 return false;
             }
 
-            Action<IPacketMsg> handlerFunc;
-            bool haveFunc = dispatchMap.TryGetValue( packetMsg.MsgType, out handlerFunc );
+            bool haveFunc = dispatchMap.TryGetValue( packetMsg.MsgType, out var handlerFunc );
 
             if ( haveFunc )
             {
@@ -335,27 +342,41 @@ namespace SteamKit2
             }
 
             // pass along the clientmsg to all registered handlers
-            foreach ( var kvp in handlers )
+            foreach ( DictionaryEntry kvp in handlers )
             {
+                var key = (Type) kvp.Key;
+                var value = (ClientMsgHandler) kvp.Value;
+
                 try
                 {
-                    kvp.Value.HandleMsg( packetMsg );
+                    value.HandleMsg( packetMsg );
                 }
                 catch ( ProtoException ex )
                 {
-                    DebugLog.WriteLine( "SteamClient", "'{0}' handler failed to (de)serialize a protobuf: '{1}'", kvp.Key.Name, ex.Message );
+                    DebugLog.WriteLine( "SteamClient", "'{0}' handler failed to (de)serialize a protobuf: '{1}'", key.Name, ex.Message );
                     Disconnect();
                     return false;
                 }
                 catch ( Exception ex )
                 {
-                    DebugLog.WriteLine( "SteamClient", "Unhandled '{0}' exception from '{1}' handler: '{2}'", ex.GetType().Name, kvp.Key.Name, ex.Message );
+                    DebugLog.WriteLine( "SteamClient", "Unhandled '{0}' exception from '{1}' handler: '{2}'", ex.GetType().Name, key.Name, ex.Message );
                     Disconnect();
                     return false;
                 }
             }
 
             return true;
+        }
+        /// <summary>
+        /// Called when the client is securely connected to Steam3.
+        /// </summary>
+        protected override void OnClientConnected()
+        {
+            base.OnClientConnected();
+
+            jobManager.SetTimeoutsEnabled( true );
+
+            PostCallback( new ConnectedCallback() );
         }
         /// <summary>
         /// Called when the client is physically disconnected from Steam3.
@@ -372,18 +393,6 @@ namespace SteamKit2
             PostCallback( new DisconnectedCallback( userInitiated ) );
         }
 
-
-        void HandleEncryptResult( IPacketMsg packetMsg )
-        {
-            var encResult = new Msg<MsgChannelEncryptResult>( packetMsg );
-
-            if ( encResult.Body.Result == EResult.OK )
-            {
-                jobManager.SetTimeoutsEnabled( true );
-
-                PostCallback( new ConnectedCallback( encResult.Body ) );
-            }
-        }
 
         void HandleCMList( IPacketMsg packetMsg )
         {

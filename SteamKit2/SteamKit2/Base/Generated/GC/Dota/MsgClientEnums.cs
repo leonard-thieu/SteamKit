@@ -8,6 +8,8 @@
 //------------------------------------------------------------------------------
 #pragma warning disable 1591
 
+// Option: missing-value detection (*Specified/ShouldSerialize*/Reset*) enabled
+    
 // Generated from: dota_client_enums.proto
 namespace SteamKit2.GC.Dota.Internal
 {
@@ -152,6 +154,12 @@ namespace SteamKit2.GC.Dota.Internal
             
       [global::ProtoBuf.ProtoEnum(Name=@"k_ETournamentState_TeamTimeoutRefund", Value=7)]
       k_ETournamentState_TeamTimeoutRefund = 7,
+            
+      [global::ProtoBuf.ProtoEnum(Name=@"k_ETournamentState_ServerFailureGrantedVictory", Value=8)]
+      k_ETournamentState_ServerFailureGrantedVictory = 8,
+            
+      [global::ProtoBuf.ProtoEnum(Name=@"k_ETournamentState_TeamTimeoutGrantedVictory", Value=9)]
+      k_ETournamentState_TeamTimeoutGrantedVictory = 9,
             
       [global::ProtoBuf.ProtoEnum(Name=@"k_ETournamentState_InProgress", Value=100)]
       k_ETournamentState_InProgress = 100,

@@ -102,8 +102,8 @@ namespace SteamKit2
             info.AddValue("Position", _position);
         }
     }
-	
-	
+    
+    
     class AsnKeyParser
     {
             readonly AsnParser _parser;
@@ -329,9 +329,9 @@ namespace SteamKit2
 
                 return parameters;
             }
-        }
+    }
 
-        internal class AsnParser
+    internal class AsnParser
         {
             readonly int _initialCount;
             readonly List<byte> _octets;

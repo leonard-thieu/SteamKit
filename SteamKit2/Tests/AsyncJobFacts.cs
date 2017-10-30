@@ -56,7 +56,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobClearsOnTimeout()
+        public async Task AsyncJobClearsOnTimeout()
         {
             SteamClient client = new SteamClient();
             client.jobManager.SetTimeoutsEnabled( true );
@@ -71,7 +71,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobCancelsOnSetFailedTimeout()
+        public async Task AsyncJobCancelsOnSetFailedTimeout()
         {
             SteamClient client = new SteamClient();
 
@@ -103,7 +103,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobTimesout()
+        public async Task AsyncJobTimesout()
         {
             SteamClient client = new SteamClient();
             client.jobManager.SetTimeoutsEnabled( true );
@@ -133,7 +133,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobThrowsFailureExceptionOnFailure()
+        public async Task AsyncJobThrowsFailureExceptionOnFailure()
         {
             SteamClient client = new SteamClient();
 
@@ -202,7 +202,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobMultipleClearsOnTimeout()
+        public async Task AsyncJobMultipleClearsOnTimeout()
         {
             SteamClient client = new SteamClient();
             client.jobManager.SetTimeoutsEnabled( true );
@@ -217,7 +217,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobMultipleExtendsTimeoutOnMessage()
+        public async Task AsyncJobMultipleExtendsTimeoutOnMessage()
         {
             SteamClient client = new SteamClient();
             client.jobManager.SetTimeoutsEnabled( true );
@@ -255,7 +255,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobMultipleTimesout()
+        public async Task AsyncJobMultipleTimesout()
         {
             SteamClient client = new SteamClient();
             client.jobManager.SetTimeoutsEnabled( true );
@@ -275,7 +275,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobMultipleCompletesOnIncompleteResult()
+        public async Task AsyncJobMultipleCompletesOnIncompleteResult()
         {
             SteamClient client = new SteamClient();
             client.jobManager.SetTimeoutsEnabled( true );
@@ -346,7 +346,7 @@ namespace Tests
         }
 
         [Fact]
-        public async void AsyncJobMultipleThrowsFailureExceptionOnFailure()
+        public async Task AsyncJobMultipleThrowsFailureExceptionOnFailure()
         {
             SteamClient client = new SteamClient();
 
@@ -367,22 +367,22 @@ namespace Tests
         {
             SteamClient client = new SteamClient();
 
-            var asyncJob = new AsyncJob<Callback>(client, 123);
+            var asyncJob = new AsyncJob<Callback>( client, 123 );
             var asyncTask = asyncJob.ToTask();
 
             var continuationThreadID = -1;
-            var continuation = asyncTask.ContinueWith(t =>
+            var continuation = asyncTask.ContinueWith( t =>
             {
                 continuationThreadID = Thread.CurrentThread.ManagedThreadId;
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }, TaskContinuationOptions.ExecuteSynchronously );
 
             var completionThreadID = Thread.CurrentThread.ManagedThreadId;
-            asyncJob.AddResult(new Callback { JobID = 123 });
+            asyncJob.AddResult( new Callback { JobID = 123 } );
 
             await continuation;
 
-            Assert.NotEqual(-1, continuationThreadID);
-            Assert.NotEqual(completionThreadID, continuationThreadID);
+            Assert.NotEqual( -1, continuationThreadID );
+            Assert.NotEqual( completionThreadID, continuationThreadID );
         }
 
         [Fact]
@@ -390,22 +390,22 @@ namespace Tests
         {
             SteamClient client = new SteamClient();
 
-            var asyncJob = new AsyncJobMultiple<Callback>(client, 123, call => true);
+            var asyncJob = new AsyncJobMultiple<Callback>( client, 123, call => true );
             var asyncTask = asyncJob.ToTask();
 
             var continuationThreadID = -1;
-            var continuation = asyncTask.ContinueWith(t =>
+            var continuation = asyncTask.ContinueWith( t =>
             {
                 continuationThreadID = Thread.CurrentThread.ManagedThreadId;
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }, TaskContinuationOptions.ExecuteSynchronously );
 
             var completionThreadID = Thread.CurrentThread.ManagedThreadId;
-            asyncJob.AddResult(new Callback { JobID = 123 });
+            asyncJob.AddResult( new Callback { JobID = 123 } );
 
             await continuation;
 
-            Assert.NotEqual(-1, continuationThreadID);
-            Assert.NotEqual(completionThreadID, continuationThreadID);
+            Assert.NotEqual( -1, continuationThreadID );
+            Assert.NotEqual( completionThreadID, continuationThreadID );
         }
     }
 }

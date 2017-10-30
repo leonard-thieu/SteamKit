@@ -114,7 +114,7 @@ namespace SteamKit2
 
             var logon = new ClientMsgProtobuf<CMsgClientLogon>( EMsg.ClientLogonGameServer );
 
-            SteamID gsId = new SteamID( 0, 0, Client.ConnectedUniverse, EAccountType.GameServer );
+            SteamID gsId = new SteamID( 0, 0, Client.Universe, EAccountType.GameServer );
 
             logon.ProtoHeader.client_sessionid = 0;
             logon.ProtoHeader.steamid = gsId.ConvertToUInt64();
@@ -149,7 +149,7 @@ namespace SteamKit2
 
             var logon = new ClientMsgProtobuf<CMsgClientLogon>( EMsg.ClientLogon );
 
-            SteamID gsId = new SteamID( 0, 0, Client.ConnectedUniverse, EAccountType.AnonGameServer );
+            SteamID gsId = new SteamID( 0, 0, Client.Universe, EAccountType.AnonGameServer );
 
             logon.ProtoHeader.client_sessionid = 0;
             logon.ProtoHeader.steamid = gsId.ConvertToUInt64();
@@ -187,7 +187,7 @@ namespace SteamKit2
         {
             if (details == null)
             {
-                throw new ArgumentNullException("details");
+                throw new ArgumentNullException( nameof(details) );
             }
 
             if (details.Address != null && details.Address.AddressFamily != AddressFamily.InterNetwork)
@@ -217,8 +217,12 @@ namespace SteamKit2
         /// <param name="packetMsg">The packet message that contains the data.</param>
         public override void HandleMsg( IPacketMsg packetMsg )
         {
-            Action<IPacketMsg> handlerFunc;
-            bool haveFunc = dispatchMap.TryGetValue( packetMsg.MsgType, out handlerFunc );
+            if ( packetMsg == null )
+            {
+                throw new ArgumentNullException( nameof(packetMsg) );
+            }
+
+            bool haveFunc = dispatchMap.TryGetValue( packetMsg.MsgType, out var handlerFunc );
 
             if ( !haveFunc )
             {

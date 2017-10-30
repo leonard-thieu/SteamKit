@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
 using SteamKit2;
 using SteamKit2.Internal;
 using Xunit;
@@ -19,7 +18,7 @@ namespace Tests
                 EMsg.ChannelEncryptResult
             };
 
-            foreach(var emsg in messages)
+            foreach (var emsg in messages)
             {
                 var msgHdr = new MsgHdr { Msg = emsg };
 
@@ -60,6 +59,14 @@ namespace Tests
 
             var data = Serialize(msgHdr);
             Array.Copy(BitConverter.GetBytes(-1), 0, data, 4, 4);
+            var packetMsg = CMClient.GetPacketMsg(data);
+            Assert.Null(packetMsg);
+        }
+
+        [Fact]
+        public void GetPacketMsgFailsWithTinyArray()
+        {
+            var data = new byte[3];
             var packetMsg = CMClient.GetPacketMsg(data);
             Assert.Null(packetMsg);
         }
@@ -115,8 +122,8 @@ namespace Tests
         class DummyCMClient : CMClient
         {
             public DummyCMClient()
+                : base( SteamConfiguration.CreateDefault() )
             {
-                PretendEncryptionIsSetUp();
             }
 
             public void DummyDisconnect()
@@ -127,12 +134,6 @@ namespace Tests
 
             public void HandleClientMsg( IClientMsg clientMsg )
                 => OnClientMsgReceived( GetPacketMsg( clientMsg.Serialize() ) );
-
-            void PretendEncryptionIsSetUp()
-            {
-                var field = typeof( CMClient ).GetField( "encryptionSetup", BindingFlags.Instance | BindingFlags.NonPublic );
-                field.SetValue( this, true );
-            }
         }
     }
 }

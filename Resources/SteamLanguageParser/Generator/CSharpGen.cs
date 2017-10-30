@@ -113,13 +113,16 @@ namespace SteamLanguageParser
 
         public void EmitNode(Node n, StringBuilder sb, int level)
         {
-            if (n is ClassNode)
+            if (n is ClassNode cn)
             {
-                EmitClassNode(n as ClassNode, sb, level);
+                if (cn.Emit)
+                {
+                    EmitClassNode(cn, sb, level);
+                }
             }
-            else if (n is EnumNode)
+            else if (n is EnumNode en)
             {
-                EmitEnumNode(n as EnumNode, sb, level);
+                EmitEnumNode(en, sb, level);
             }
         }
 
@@ -145,6 +148,11 @@ namespace SteamLanguageParser
 
             foreach (PropNode prop in enode.childNodes)
             {
+                if (!prop.Emit)
+                {
+                    continue;
+                }
+
                 lastValue = EmitMultipleTypes(prop.Default);
 
                 if ( prop.Obsolete != null )
@@ -508,7 +516,7 @@ namespace SteamLanguageParser
 
             foreach (String stream in openedStreams)
             {
-                sb.AppendLine(padding + "\t" + stream + ".Close();");
+                sb.AppendLine(padding + "\t" + stream + ".Dispose();");
             }
 
             //sb.AppendLine();

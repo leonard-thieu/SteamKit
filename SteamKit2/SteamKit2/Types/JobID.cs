@@ -50,6 +50,11 @@ namespace SteamKit2
         /// </returns>
         public static implicit operator ulong ( JobID jobId )
         {
+            if ( jobId == null )
+            {
+                throw new ArgumentNullException( nameof(jobId) );
+            }
+
             return jobId.Value;
         }
 
@@ -74,6 +79,11 @@ namespace SteamKit2
         /// </returns>
         public static implicit operator JobID( AsyncJob asyncJob )
         {
+            if ( asyncJob == null )
+            {
+                throw new ArgumentNullException( nameof(asyncJob) );
+            }
+
             return asyncJob.JobID;
         }
     }
@@ -90,7 +100,7 @@ namespace SteamKit2
         /// <summary>
         /// Gets the <see cref="JobID"/> for this job.
         /// </summary>
-        public JobID JobID { get; private set; }
+        public JobID JobID { get; }
 
         /// <summary>
         /// Gets or sets the period of time before this job will be considered timed out and will be canceled. By default this is 10 seconds.
@@ -103,8 +113,18 @@ namespace SteamKit2
         }
 
 
-        internal AsyncJob( SteamClient client, ulong jobId )
+        internal AsyncJob( SteamClient client, JobID jobId )
         {
+            if ( client == null )
+            {
+                throw new ArgumentNullException( nameof(client) );
+            }
+            
+            if ( jobId == null )
+            {
+                throw new ArgumentNullException( nameof(jobId) );
+            }
+
             jobStart = DateTime.UtcNow;
             JobID = jobId;
 
@@ -162,7 +182,7 @@ namespace SteamKit2
     public sealed class AsyncJob<T> : AsyncJob, IAsyncJob<T>
         where T : ICallbackMsg
     {
-        TaskCompletionSource<T> tcs;
+        readonly TaskCompletionSource<T> tcs;
 
 
         /// <summary>
@@ -173,7 +193,7 @@ namespace SteamKit2
         public AsyncJob( SteamClient client, JobID jobId )
             : base( client, jobId )
         {
-            tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+            tcs = new TaskCompletionSource<T>( TaskCreationOptions.RunContinuationsAsynchronously );
         }
 
 
@@ -301,7 +321,7 @@ namespace SteamKit2
         public AsyncJobMultiple( SteamClient client, JobID jobId, Predicate<T> finishCondition )
                     : base( client, jobId )
         {
-            tcs = new TaskCompletionSource<ResultSet>(TaskCreationOptions.RunContinuationsAsynchronously);
+            tcs = new TaskCompletionSource<ResultSet>( TaskCreationOptions.RunContinuationsAsynchronously );
 
             this.finishCondition = finishCondition;
         }

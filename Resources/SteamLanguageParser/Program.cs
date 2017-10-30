@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.IO;
 
 namespace SteamLanguageParser
 {
@@ -18,7 +17,7 @@ namespace SteamLanguageParser
                 throw new Exception( "Unable to find SteamRE project path, please specify the `SteamRE` environment variable" );
             }
 
-            ParseFile( projectPath, @"Resources\SteamLanguage", "steammsg.steamd", "SteamKit2", @"SteamKit2\SteamKit2\Base\Generated\", "SteamLanguage", true, new CSharpGen(), "cs" );
+            ParseFile( projectPath, Path.Combine( "Resources", "SteamLanguage" ), "steammsg.steamd", "SteamKit2", Path.Combine( "SteamKit2", "SteamKit2", "Base", "Generated"), "SteamLanguage", true, new CSharpGen(), "cs" );
 
             //ParseFile( projectPath, @"Resources\SteamLanguage", "steammsg.steamd", "SteamKit2", @"SteamKit2\ObjC\", "SteamLanguage", true, new ObjCInterfaceGen(), "h" );
             //ParseFile( projectPath, @"Resources\SteamLanguage", "steammsg.steamd", "SteamKit2", @"SteamKit2\ObjC\", "SteamLanguage", true, new ObjCImplementationGen(), "m" );
@@ -29,7 +28,7 @@ namespace SteamLanguageParser
         {
             string languagePath = Path.Combine( projectPath, path );
 
-            Environment.CurrentDirectory = languagePath;
+            Directory.SetCurrentDirectory( languagePath );
             Queue<Token> tokenList = LanguageParser.TokenizeString( File.ReadAllText( Path.Combine( languagePath, file ) ) );
 
             Node root = TokenAnalyzer.Analyze( tokenList );

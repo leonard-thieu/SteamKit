@@ -5,18 +5,17 @@
 
 
 
-using SteamKit2.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
+using SteamKit2.Internal;
 
 namespace SteamKit2
 {
-    class UdpConnection : Connection
+    class UdpConnection : IConnection
     {
         private enum State
         {
@@ -53,9 +52,6 @@ namespace SteamKit2
 
         private Thread netThread;
         private Socket sock;
-        private IPEndPoint remoteEndPoint;
-
-        INetFilterEncryption filter;
 
         private DateTime timeOut;
         private DateTime nextResend;
@@ -97,30 +93,35 @@ namespace SteamKit2
         {
             IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-            sock = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            sock = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
             sock.Bind(localEndPoint);
 
             state = (int)State.Disconnected;
         }
 
-        public override IPEndPoint CurrentEndPoint
-        {
-            get { return remoteEndPoint; }
-        }
+        public event EventHandler<NetMsgEventArgs> NetMsgReceived;
+
+        public event EventHandler Connected;
+
+        public event EventHandler<DisconnectedEventArgs> Disconnected;
+
+        public EndPoint CurrentEndPoint { get; private set; }
+
+        public ProtocolTypes ProtocolTypes => ProtocolTypes.Udp;
 
         /// <summary>
         /// Connects to the specified CM server.
         /// </summary>
-        /// <param name="endPointTask">Task returning the CM server.</param>
+        /// <param name="endPoint">The endPoint to connect to</param>
         /// <param name="timeout">Timeout in milliseconds</param>
-        public override void Connect(Task<IPEndPoint> endPointTask, int timeout)
+        public void Connect(EndPoint endPoint, int timeout)
         {
             Disconnect();
 
             outPackets = new List<UdpPacket>();
             inPackets = new Dictionary<uint, UdpPacket>();
 
-            remoteEndPoint = null;
+            CurrentEndPoint = null;
             remoteConnId = 0;
 
             outSeq = 1;
@@ -131,18 +132,16 @@ namespace SteamKit2
             inSeqAcked = 0;
             inSeqHandled = 0;
 
-            filter = null;
-
             netThread = new Thread(NetLoop);
             netThread.Name = "UdpConnection Thread";
-            netThread.Start(endPointTask);
+            netThread.Start(endPoint);
         }
 
         /// <summary>
         /// Disconnects this instance, blocking until the queue of messages is empty or the connection
         /// is otherwise terminated.
         /// </summary>
-        public override void Disconnect()
+        public void Disconnect()
         {
             if ( netThread == null )
                 return;
@@ -168,18 +167,13 @@ namespace SteamKit2
         }
 
         /// <summary>
-        /// Serializes and sends the provided message to the server in as many packets as is necessary.
+        /// Serializes and sends the provided data to the server in as many packets as is necessary.
         /// </summary>
-        /// <param name="clientMsg">The ClientMsg</param>
-        public override void Send( IClientMsg clientMsg )
+        /// <param name="data">The data to send to the server</param>
+        public void Send( byte[] data )
         {
             if ( state != (int)State.Connected )
                 return;
-
-            byte[] data = clientMsg.Serialize();
-
-            if ( filter != null )
-                data = filter.ProcessOutgoing( data );
 
             SendData( new MemoryStream( data ) );
         }
@@ -255,13 +249,13 @@ namespace SteamKit2
 
             try
             {
-                sock.SendTo(data, remoteEndPoint);
+                sock.SendTo( data, CurrentEndPoint );
             }
             catch ( SocketException e )
             {
-                DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
+                DebugLog.WriteLine( "UdpConnection", "Critical socket failure: " + e.SocketErrorCode );
 
-                state = (int)State.Disconnected;
+                state = ( int )State.Disconnected;
                 return;
             }
 
@@ -353,12 +347,9 @@ namespace SteamKit2
 
             byte[] data = payload.ToArray();
 
-            if ( filter != null )
-                data = filter.ProcessIncoming(data);
-
             DebugLog.WriteLine("UdpConnection", "Dispatching message; {0} bytes", data.Length);
 
-            OnNetMsgReceived(new NetMsgEventArgs(data, remoteEndPoint));
+            NetMsgReceived?.Invoke( this, new NetMsgEventArgs( data, CurrentEndPoint ) );
 
             return true;
         }
@@ -371,31 +362,12 @@ namespace SteamKit2
             // Variables that will be used deeper in the function; locating them here avoids recreating
             // them since they don't need to be.
             var userRequestedDisconnect = false;
-            EndPoint packetSender = (EndPoint)new IPEndPoint(IPAddress.Any, 0);
+            EndPoint packetSender = new IPEndPoint(IPAddress.Any, 0);
             byte[] buf = new byte[2048];
 
-            var epTask = param as Task<IPEndPoint>;
-            try
-            {
-                if ( epTask != null )
-                {
-                    remoteEndPoint = epTask.Result;
-                }
-                else
-                {
-                    DebugLog.WriteLine("UdpConnection", "Invalid endpoint supplied for connection: {0}", param);
-                }
-                
-            }
-            catch ( AggregateException ae )
-            {
-                foreach ( var ex in ae.Flatten().InnerExceptions )
-                {
-                    DebugLog.WriteLine("UdpConnection", "Endpoint task threw exception: {0}", ex);
-                }
-            }
+            CurrentEndPoint = param as EndPoint;
 
-            if ( remoteEndPoint != null )
+            if ( CurrentEndPoint != null )
             {
                 timeOut = DateTime.Now.AddSeconds(TIMEOUT_DELAY);
                 nextResend = DateTime.Now.AddSeconds(RESEND_DELAY);
@@ -433,7 +405,7 @@ namespace SteamKit2
                         int length = sock.ReceiveFrom(buf, ref packetSender);
 
                         // Ignore packets that aren't sent by the server we're connected to.
-                        if ( !packetSender.Equals(remoteEndPoint) )
+                        if ( !packetSender.Equals( CurrentEndPoint ) )
                             continue;
 
                         // Data from the desired server was received; delay timeout
@@ -445,24 +417,24 @@ namespace SteamKit2
                         ReceivePacket(packet);
                     }
                 }
-                catch (IOException ex)
+                catch ( IOException ex )
                 {
-                    DebugLog.WriteLine("UdpConnection", "Exception occurred while reading packet: {0}", ex);
+                    DebugLog.WriteLine( "UdpConnection", "Exception occurred while reading packet: {0}", ex );
 
-                    state = (int)State.Disconnected;
+                    state = ( int )State.Disconnected;
                     break;
                 }
                 catch ( SocketException e )
                 {
-                    DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
+                    DebugLog.WriteLine( "UdpConnection", "Critical socket failure: " + e.SocketErrorCode );
 
-                    state = (int)State.Disconnected;
+                    state = ( int )State.Disconnected;
                     break;
                 }
 
                 // Send or resend any sequenced packets; a call to ReceivePacket can set our state to disconnected
                 // so don't send anything we have queued in that case
-                if ( state != (int)State.Disconnected )
+                if ( state != ( int )State.Disconnected )
                     SendPendingMessages();
 
                 // If we received data but had no data to send back, we need to manually Ack (usually tags along with
@@ -472,18 +444,18 @@ namespace SteamKit2
 
                 // If a graceful shutdown has been requested, nothing in the outgoing queue is discarded.
                 // Once it's empty, we exit, since the last packet was our disconnect notification.
-                if ( state == (int)State.Disconnecting && outPackets.Count == 0 )
+                if ( state == ( int )State.Disconnecting && outPackets.Count == 0 )
                 {
-                    DebugLog.WriteLine("UdpConnection", "Graceful disconnect completed");
+                    DebugLog.WriteLine( "UdpConnection", "Graceful disconnect completed" );
 
-                    state = (int)State.Disconnected;
+                    state = ( int )State.Disconnected;
                     userRequestedDisconnect = true;
                     break;
                 }
             }
 
             DebugLog.WriteLine("UdpConnection", "Calling OnDisconnected");
-            OnDisconnected( new DisconnectedEventArgs( userRequestedDisconnect ) );
+            Disconnected?.Invoke( this, new DisconnectedEventArgs( userRequestedDisconnect ) );
         }
 
         /// <summary>
@@ -592,11 +564,11 @@ namespace SteamKit2
             if ( Interlocked.CompareExchange( ref state, (int)State.Connected, (int)State.ConnectSent ) != (int)State.ConnectSent )
                 return;
 
-            DebugLog.WriteLine("UdpConnection", "Connection established");
+            DebugLog.WriteLine( "UdpConnection", "Connection established" );
             remoteConnId = packet.Header.SourceConnID;
             inSeqHandled = packet.Header.SeqThis;
 
-            OnConnected( EventArgs.Empty );
+            Connected?.Invoke( this, EventArgs.Empty );
         }
 
         /// <summary>
@@ -619,19 +591,7 @@ namespace SteamKit2
             while ( DispatchMessage() ) ;
         }
 
-        public override IPAddress GetLocalIP()
-        {
-            return NetHelpers.GetLocalIP(sock);
-        }
-
-
-        /// <summary>
-        /// Sets the network encryption filter for this connection
-        /// </summary>
-        /// <param name="filter">filter implementing <see cref="INetFilterEncryption"/></param>
-        public override void SetNetEncryptionFilter( INetFilterEncryption filter )
-        {
-            this.filter = filter;
-        }
+        public IPAddress GetLocalIP()
+            => NetHelpers.GetLocalIP(sock);
     }
 }

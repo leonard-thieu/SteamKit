@@ -290,7 +290,7 @@ namespace SteamKit2
         {
             if ( details == null )
             {
-                throw new ArgumentNullException( "details" );
+                throw new ArgumentNullException( nameof(details) );
             }
             if ( string.IsNullOrEmpty( details.Username ) || ( string.IsNullOrEmpty( details.Password ) && string.IsNullOrEmpty( details.LoginKey ) ) )
             {
@@ -311,7 +311,7 @@ namespace SteamKit2
 
             var logon = new ClientMsgProtobuf<CMsgClientLogon>( EMsg.ClientLogon );
 
-            SteamID steamId = new SteamID( details.AccountID, details.AccountInstance, Client.ConnectedUniverse, EAccountType.Individual );
+            SteamID steamId = new SteamID( details.AccountID, details.AccountInstance, Client.Universe, EAccountType.Individual );
 
             if ( details.LoginID.HasValue )
             {
@@ -372,6 +372,11 @@ namespace SteamKit2
         /// <param name="details">The details to use for logging on.</param>
         public void LogOnAnonymous( AnonymousLogOnDetails details )
         {
+            if ( details == null )
+            {
+                throw new ArgumentNullException( nameof(details) );
+            }
+
             if ( !this.Client.IsConnected )
             {
                 this.Client.PostCallback( new LoggedOnCallback( EResult.NoConnection ) );
@@ -380,7 +385,7 @@ namespace SteamKit2
 
             var logon = new ClientMsgProtobuf<CMsgClientLogon>( EMsg.ClientLogon );
 
-            SteamID auId = new SteamID( 0, 0, Client.ConnectedUniverse, EAccountType.AnonUser );
+            SteamID auId = new SteamID( 0, 0, Client.Universe, EAccountType.AnonUser );
 
             logon.ProtoHeader.client_sessionid = 0;
             logon.ProtoHeader.steamid = auId.ConvertToUInt64();
@@ -414,6 +419,11 @@ namespace SteamKit2
         /// <param name="details">The details pertaining to the response.</param>
         public void SendMachineAuthResponse( MachineAuthDetails details )
         {
+            if ( details == null )
+            {
+                throw new ArgumentNullException( nameof(details) );
+            }
+
             var response = new ClientMsgProtobuf<CMsgClientUpdateMachineAuthResponse>( EMsg.ClientUpdateMachineAuthResponse );
 
             // so we respond to the correct message
@@ -460,6 +470,11 @@ namespace SteamKit2
         /// <param name="callback">The callback containing the new Login Key.</param>
         public void AcceptNewLoginKey( LoginKeyCallback callback )
         {
+            if ( callback == null )
+            {
+                throw new ArgumentNullException( nameof(callback) );
+            }
+
             var acceptance = new ClientMsgProtobuf<CMsgClientNewLoginKeyAccepted>( EMsg.ClientNewLoginKeyAccepted );
             acceptance.Body.unique_id = callback.UniqueID;
 
@@ -472,8 +487,12 @@ namespace SteamKit2
         /// <param name="packetMsg">The packet message that contains the data.</param>
         public override void HandleMsg( IPacketMsg packetMsg )
         {
-            Action<IPacketMsg> handlerFunc;
-            bool haveFunc = dispatchMap.TryGetValue( packetMsg.MsgType, out handlerFunc );
+            if ( packetMsg == null )
+            {
+                throw new ArgumentNullException( nameof(packetMsg) );
+            }
+
+            bool haveFunc = dispatchMap.TryGetValue( packetMsg.MsgType, out var handlerFunc );
 
             if ( !haveFunc )
             {

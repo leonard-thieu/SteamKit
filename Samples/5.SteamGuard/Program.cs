@@ -99,14 +99,6 @@ namespace Sample5_SteamGuard
 
         static void OnConnected( SteamClient.ConnectedCallback callback )
         {
-            if ( callback.Result != EResult.OK )
-            {
-                Console.WriteLine( "Unable to connect to Steam: {0}", callback.Result );
-
-                isRunning = false;
-                return;
-            }
-
             Console.WriteLine( "Connected to Steam! Logging in '{0}'...", user );
 
             byte[] sentryHash = null;
@@ -207,7 +199,7 @@ namespace Sample5_SteamGuard
                 fileSize = ( int )fs.Length;
 
                 fs.Seek( 0, SeekOrigin.Begin );
-                using ( var sha = new SHA1CryptoServiceProvider() )
+                using ( var sha = SHA1.Create() )
                 {
                     sentryHash = sha.ComputeHash( fs );
                 }

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using SteamKit2;
+﻿using SteamKit2;
 using SteamKit2.Internal;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Tests
 {
@@ -40,16 +34,6 @@ namespace Tests
             0x00,
         };
 
-        public ClientMsgFacts()
-        {
-            // Debug.Assert's default behavior is to display a dialog if the default trace listener is still installed
-            // xunit prior to 2.0 would disable the default trace listener and prevent the assert dialog
-            // since we're now on 2.0, we need to restore this behavior ourselves
-
-            Debug.Listeners.Clear();
-            Debug.Listeners.Add( new TraceAssertListener() );
-        }
-
         [Fact]
         public void PayloadReaderReadsNullTermString()
         {
@@ -76,39 +60,6 @@ namespace Tests
             Assert.Equal( nextByte, 0 );
             // and the one after should be the beginning of a MessageObject
             Assert.Equal( mByte, 'M' );
-        }
-
-        [Fact]
-        public void ClientMsgAssertsInitializedWithNonProtoMsg()
-        {
-            var packetMsgData = new ClientMsgProtobuf<CMsgClientLogon>( EMsg.ClientLogon ).Serialize();
-            var packetMsg = new PacketClientMsgProtobuf( MsgUtil.MakeMsg( EMsg.ClientLogon, protobuf: true ), packetMsgData );
-
-
-            var exception = Record.Exception( () => new ClientMsg<MsgClientLogon>( packetMsg ) );
-            Assert.NotNull( exception );
-            Assert.IsType<TraceAssertException>( exception );
-
-            var tae = (TraceAssertException)exception;
-
-            // Can't nameof(ClientMsg) - nameof doesn't support open generic types (yet).
-            Assert.Contains( $"ClientMsg<{typeof( MsgClientLogon ).FullName}>", tae.AssertMessage );
-        }
-
-        [Fact]
-        public void ClientMsgProtobufAssertsInitializedWithProtoMsg()
-        {
-            var packetMsgData = new ClientMsg<MsgClientLogon>().Serialize();
-            var packetMsg = new PacketClientMsg( MsgUtil.MakeMsg( EMsg.ClientLogon, protobuf: false ), packetMsgData );
-
-            var exception = Record.Exception( () => new ClientMsgProtobuf<CMsgClientLogon>( packetMsg ) );
-            Assert.NotNull( exception );
-            Assert.IsType<TraceAssertException>( exception );
-
-            var tae = (TraceAssertException)exception;
-
-            // Can't nameof(ClientMsgProtobuf) - nameof doesn't support open generic types (yet).
-            Assert.Contains( $"ClientMsgProtobuf<{typeof( CMsgClientLogon ).FullName}>", tae.AssertMessage );
         }
 
         static IPacketMsg BuildStructMsg()

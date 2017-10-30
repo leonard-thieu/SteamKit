@@ -5,7 +5,6 @@
 
 
 
-using SteamKit2.Discovery;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +13,9 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
+using SteamKit2.Discovery;
 
 namespace SteamKit2.Internal
 {
@@ -24,25 +25,26 @@ namespace SteamKit2.Internal
     public abstract class CMClient : ICMClient
     {
         /// <summary>
+        /// The configuration for this client.
+        /// </summary>
+        public SteamConfiguration Configuration { get; }
+
+        /// <summary>
         /// Bootstrap list of CM servers.
         /// </summary>
-        public static SmartCMServerList Servers { get; private set; }
+        public SmartCMServerList Servers => Configuration.ServerList;
 
         /// <summary>
         /// Returns the the local IP of this client.
         /// </summary>
         /// <returns>The local IP.</returns>
-        public IPAddress LocalIP
-        {
-            get { return connection.GetLocalIP(); }
-        }
+        public IPAddress LocalIP => connection.GetLocalIP();
 
         /// <summary>
-        /// Gets the connected universe of this client.
-        /// This value will be <see cref="EUniverse.Invalid"/> if the client is not connected to Steam.
+        /// Gets the universe of this client.
         /// </summary>
         /// <value>The universe.</value>
-        public EUniverse ConnectedUniverse { get; private set; }
+        public EUniverse Universe => Configuration.Universe;
 
         /// <summary>
         /// Gets a value indicating whether this instance is connected to the remote CM server.
@@ -50,7 +52,7 @@ namespace SteamKit2.Internal
         /// <value>
         /// 	<c>true</c> if this instance is connected; otherwise, <c>false</c>.
         /// </value>
-        public bool IsConnected { get { return ConnectedUniverse != EUniverse.Invalid; } }
+        public bool IsConnected { get; private set; }
 
         /// <summary>
         /// Gets the session token assigned to this client from the AM.
@@ -78,12 +80,11 @@ namespace SteamKit2.Internal
 
         /// <summary>
         /// Gets or sets the connection timeout used when connecting to the Steam server.
-        /// The default value is 5 seconds.
         /// </summary>
         /// <value>
         /// The connection timeout.
         /// </value>
-        public TimeSpan ConnectionTimeout { get; set; }
+        public TimeSpan ConnectionTimeout => Configuration.ConnectionTimeout;
 
         /// <summary>
         /// Gets or sets the network listening interface. Use this for debugging only.
@@ -93,52 +94,23 @@ namespace SteamKit2.Internal
 
         internal bool ExpectDisconnection { get; set; }
 
-        Connection connection;
-        bool encryptionSetup;
-        INetFilterEncryption pendingNetFilterEncryption;
+        CancellationTokenSource connectionCancellation;
+        Task connectionSetupTask;
+        IConnection connection;
 
         ScheduledFunction heartBeatFunc;
 
         Dictionary<EServerType, HashSet<IPEndPoint>> serverMap;
 
-
-        static CMClient()
-        {
-            Servers = new SmartCMServerList();
-        }
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="CMClient"/> class with a specific connection type.
+        /// Initializes a new instance of the <see cref="CMClient"/> class with a specific configuration.
         /// </summary>
-        /// <param name="type">The connection type to use.</param>
-        /// <exception cref="NotSupportedException">
-        /// The provided <see cref="ProtocolType"/> is not supported.
-        /// Only Tcp and Udp are available.
-        /// </exception>
-        public CMClient( ProtocolType type = ProtocolType.Tcp )
+        /// <param name="configuration">The configuration to use for this client.</param>
+        /// <exception cref="ArgumentNullException">The configuration object is <c>null</c></exception>
+        public CMClient( SteamConfiguration configuration )
         {
+            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             serverMap = new Dictionary<EServerType, HashSet<IPEndPoint>>();
-
-            // our default timeout
-            ConnectionTimeout = TimeSpan.FromSeconds( 5 );
-
-            switch ( type )
-            {
-                case ProtocolType.Tcp:
-                    connection = new TcpConnection();
-                    break;
-
-                case ProtocolType.Udp:
-                    connection = new UdpConnection();
-                    break;
-
-                default:
-                    throw new NotSupportedException( "The provided protocol type is not supported. Only Tcp and Udp are available." );
-            }
-
-            connection.NetMsgReceived += NetMsgReceived;
-            connection.Connected += Connected;
-            connection.Disconnected += Disconnected;
 
             heartBeatFunc = new ScheduledFunction( () =>
             {
@@ -156,29 +128,62 @@ namespace SteamKit2.Internal
         /// preferrably after a short delay.
         /// </summary>
         /// <param name="cmServer">
-        /// The <see cref="IPEndPoint"/> of the CM server to connect to.
+        /// The <see cref="ServerRecord"/> of the CM server to connect to.
         /// If <c>null</c>, SteamKit will randomly select a CM server from its internal list.
         /// </param>
-        public void Connect( IPEndPoint cmServer = null  )
+        public void Connect( ServerRecord cmServer = null  )
         {
             this.Disconnect();
+            Debug.Assert( connection == null );
 
-            encryptionSetup = false;
-            pendingNetFilterEncryption = null;
+            var cancellation = new CancellationTokenSource();
+            var token = cancellation.Token;
+            var oldCancellation = Interlocked.Exchange( ref connectionCancellation, cancellation );
+            Debug.Assert( oldCancellation == null );
+
             ExpectDisconnection = false;
 
-            Task<IPEndPoint> epTask = null;
+            Task<ServerRecord> recordTask = null;
 
             if ( cmServer == null )
             {
-                epTask = Servers.GetNextServerCandidateAsync();
+                recordTask = Servers.GetNextServerCandidateAsync( Configuration.ProtocolTypes );
             }
             else
             {
-                epTask = Task.FromResult( cmServer );
+                recordTask = Task.FromResult( cmServer );
             }
 
-            connection.Connect( epTask, ( int )ConnectionTimeout.TotalMilliseconds );
+            connectionSetupTask = recordTask.ContinueWith( t =>
+            {
+                if ( token.IsCancellationRequested )
+                {
+                    DebugLog.WriteLine( nameof(CMClient), "Connection cancelled before a server could be chosen." );
+                    OnClientDisconnected( userInitiated: true );
+                    return;
+                }
+                else if ( t.IsFaulted || t.IsCanceled )
+                {
+                    DebugLog.WriteLine( nameof(CMClient), "Server record task threw exception: {0}", t.Exception );
+                    OnClientDisconnected( userInitiated: false );
+                    return;
+                }
+
+                var record = t.Result;
+
+                connection = CreateConnection( record.ProtocolTypes & Configuration.ProtocolTypes );
+                connection.NetMsgReceived += NetMsgReceived;
+                connection.Connected += Connected;
+                connection.Disconnected += Disconnected;
+                connection.Connect( record.EndPoint, ( int )ConnectionTimeout.TotalMilliseconds );
+            }, TaskContinuationOptions.ExecuteSynchronously).ContinueWith(t =>
+            {
+                if ( t.IsFaulted )
+                {
+                    DebugLog.WriteLine( nameof(CMClient), "Unhandled exception when attempting to connect to Steam: {0}", t.Exception );
+                    OnClientDisconnected( userInitiated: false );
+                }
+            }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         /// <summary>
@@ -188,7 +193,19 @@ namespace SteamKit2.Internal
         {
             heartBeatFunc.Stop();
 
-            connection.Disconnect();
+            var cts = Interlocked.Exchange(ref connectionCancellation, null);
+            if (cts != null)
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+
+            var task = Interlocked.Exchange(ref connectionSetupTask, null);
+            if ( task != null )
+            {
+                task.GetAwaiter().GetResult();
+            }
+            connection?.Disconnect();
         }
 
         /// <summary>
@@ -199,13 +216,19 @@ namespace SteamKit2.Internal
         public void Send( IClientMsg msg )
         {
             if ( msg == null )
-                throw new ArgumentException( "A value for 'msg' must be supplied" );
+            {
+                throw new ArgumentNullException( nameof(msg), "A value for 'msg' must be supplied" );
+            }
 
             if ( this.SessionID.HasValue )
+            {
                 msg.SessionID = this.SessionID.Value;
+            }
 
             if ( this.SteamID != null )
+            {
                 msg.SteamID = this.SteamID;
+            }
 
             DebugLog.WriteLine( "CMClient", "Sent -> EMsg: {0} (Proto: {1})", msg.MsgType, msg.IsProto );
 
@@ -224,7 +247,7 @@ namespace SteamKit2.Internal
 
             try
             {
-                connection.Send( msg );
+                connection?.Send( msg.Serialize() );
             }
             catch ( IOException )
             {
@@ -242,8 +265,7 @@ namespace SteamKit2.Internal
         /// <returns>List of server endpoints</returns>
         public List<IPEndPoint> GetServersOfType( EServerType type )
         {
-            HashSet<IPEndPoint> set;
-            if ( !serverMap.TryGetValue( type, out set ) )
+            if ( !serverMap.TryGetValue( type, out var set ) )
                 return new List<IPEndPoint>();
 
             return set.ToList();
@@ -278,22 +300,8 @@ namespace SteamKit2.Internal
                 }
             }
 
-            // ensure that during channel setup, no other messages are processed
-            if ( ( !encryptionSetup && pendingNetFilterEncryption == null && packetMsg.MsgType != EMsg.ChannelEncryptRequest ) ||
-                 ( !encryptionSetup && pendingNetFilterEncryption != null && packetMsg.MsgType != EMsg.ChannelEncryptRequest && packetMsg.MsgType != EMsg.ChannelEncryptResult ) )
-            {
-                DebugLog.WriteLine( "CMClient", "Rejected EMsg: {0} during channel setup" );
-                return false;
-            }
-
             switch ( packetMsg.MsgType )
             {
-                case EMsg.ChannelEncryptRequest:
-                    return HandleEncryptRequest( packetMsg );
-
-                case EMsg.ChannelEncryptResult:
-                    return HandleEncryptResult( packetMsg );
-
                 case EMsg.Multi:
                     HandleMulti( packetMsg );
                     break;
@@ -322,6 +330,12 @@ namespace SteamKit2.Internal
             return true;
         }
         /// <summary>
+        /// Called when the client is securely connected to Steam3.
+        /// </summary>
+        protected virtual void OnClientConnected()
+        {
+        }
+        /// <summary>
         /// Called when the client is physically disconnected from Steam3.
         /// </summary>
         protected virtual void OnClientDisconnected( bool userInitiated )
@@ -332,6 +346,24 @@ namespace SteamKit2.Internal
             }
         }
 
+        IConnection CreateConnection( ProtocolTypes protocol )
+        {
+            if ( protocol.HasFlagsFast( ProtocolTypes.WebSocket ) )
+            {
+                return new WebSocketConnection();
+            }
+            else if ( protocol.HasFlagsFast( ProtocolTypes.Tcp ) )
+            {
+                return new EnvelopeEncryptedConnection( new TcpConnection(), Universe );
+            }
+            else if ( protocol.HasFlagsFast( ProtocolTypes.Udp ) )
+            {
+                return new EnvelopeEncryptedConnection( new UdpConnection(), Universe );
+            }
+
+            throw new ArgumentOutOfRangeException( nameof(protocol), protocol, "Protocol bitmask has no supported protocols set." );
+        }
+
 
         void NetMsgReceived( object sender, NetMsgEventArgs e )
         {
@@ -340,20 +372,29 @@ namespace SteamKit2.Internal
 
         void Connected( object sender, EventArgs e )
         {
-            Servers.TryMark( connection.CurrentEndPoint, ServerQuality.Good );
+            Servers.TryMark( connection.CurrentEndPoint, connection.ProtocolTypes, ServerQuality.Good );
+
+            IsConnected = true;
+            OnClientConnected();
         }
 
         void Disconnected( object sender, DisconnectedEventArgs e )
         {
+            IsConnected = false;
+
             if ( !e.UserInitiated )
             {
-                Servers.TryMark( connection.CurrentEndPoint, ServerQuality.Bad );
+                Servers.TryMark( connection.CurrentEndPoint, connection.ProtocolTypes, ServerQuality.Bad );
             }
 
             SessionID = null;
             SteamID = null;
 
-            ConnectedUniverse = EUniverse.Invalid;
+
+            connection.NetMsgReceived -= NetMsgReceived;
+            connection.Connected -= Connected;
+            connection.Disconnected -= Disconnected;
+            connection = null;
 
             heartBeatFunc.Stop();
 
@@ -362,6 +403,12 @@ namespace SteamKit2.Internal
 
         internal static IPacketMsg GetPacketMsg( byte[] data )
         {
+            if ( data.Length < sizeof( uint ) )
+            {
+                DebugLog.WriteLine( nameof(CMClient), "PacketMsg too small to contain a message, was only {0} bytes. Message: 0x{1}", data.Length, BitConverter.ToString( data ).Replace( "-", string.Empty ) );
+                return null;
+            }
+
             uint rawEMsg = BitConverter.ToUInt32( data, 0 );
             EMsg eMsg = MsgUtil.GetMsg( rawEMsg );
 
@@ -470,99 +517,6 @@ namespace SteamKit2.Internal
                 heartBeatFunc.Start();
             }
         }
-        bool HandleEncryptRequest( IPacketMsg packetMsg )
-        {
-            var encRequest = new Msg<MsgChannelEncryptRequest>( packetMsg );
-
-            EUniverse eUniv = encRequest.Body.Universe;
-            uint protoVersion = encRequest.Body.ProtocolVersion;
-
-            DebugLog.WriteLine( "CMClient", "Got encryption request. Universe: {0} Protocol ver: {1}", eUniv, protoVersion );
-            DebugLog.Assert( protoVersion == 1, "CMClient", "Encryption handshake protocol version mismatch!" );
-
-            byte[] randomChallenge;
-            if ( encRequest.Payload.Length >= 16 )
-            {
-                randomChallenge = encRequest.Payload.ToArray();
-            }
-            else
-            {
-                randomChallenge = null;
-            }
-
-            byte[] pubKey = KeyDictionary.GetPublicKey( eUniv );
-
-            if ( pubKey == null )
-            {
-                connection.Disconnect();
-
-                DebugLog.WriteLine( "CMClient", "HandleEncryptionRequest got request for invalid universe! Universe: {0} Protocol ver: {1}", eUniv, protoVersion );
-                return false;
-            }
-
-            ConnectedUniverse = eUniv;
-
-            var encResp = new Msg<MsgChannelEncryptResponse>();
-            
-            var tempSessionKey = CryptoHelper.GenerateRandomBlock( 32 );
-            byte[] encryptedHandshakeBlob = null;
-            
-            using ( var rsa = new RSACrypto( pubKey ) )
-            {
-                if ( randomChallenge != null )
-                {
-                    var blobToEncrypt = new byte[ tempSessionKey.Length + randomChallenge.Length ];
-                    Array.Copy( tempSessionKey, blobToEncrypt, tempSessionKey.Length );
-                    Array.Copy( randomChallenge, 0, blobToEncrypt, tempSessionKey.Length, randomChallenge.Length );
-
-                    encryptedHandshakeBlob = rsa.Encrypt( blobToEncrypt );
-                }
-                else
-                {
-                    encryptedHandshakeBlob = rsa.Encrypt( tempSessionKey );
-                }
-            }
-
-            var keyCrc = CryptoHelper.CRCHash( encryptedHandshakeBlob );
-
-            encResp.Write( encryptedHandshakeBlob );
-            encResp.Write( keyCrc );
-            encResp.Write( ( uint )0 );
-            
-            if (randomChallenge != null)
-            {
-                pendingNetFilterEncryption = new NetFilterEncryptionWithHMAC( tempSessionKey );
-            }
-            else
-            {
-                pendingNetFilterEncryption = new NetFilterEncryption( tempSessionKey );
-            }
-
-            this.Send( encResp );
-            return true;
-        }
-        bool HandleEncryptResult( IPacketMsg packetMsg )
-        {
-            var encResult = new Msg<MsgChannelEncryptResult>( packetMsg );
-
-            DebugLog.WriteLine( "CMClient", "Encryption result: {0}", encResult.Body.Result );
-
-            if ( encResult.Body.Result == EResult.OK && pendingNetFilterEncryption != null )
-            {
-                Debug.Assert( pendingNetFilterEncryption != null );
-                connection.SetNetEncryptionFilter( pendingNetFilterEncryption );
-
-                pendingNetFilterEncryption = null;
-                encryptionSetup = true;
-                return true;
-            }
-            else
-            {
-                DebugLog.WriteLine( "CMClient", "Encryption channel setup failed" );
-                connection.Disconnect();
-                return false;
-            }
-        }
         void HandleLoggedOff( IPacketMsg packetMsg )
         {
             SessionID = null;
@@ -579,7 +533,7 @@ namespace SteamKit2.Internal
 
                 if ( logoffResult == EResult.TryAnotherCM || logoffResult == EResult.ServiceUnavailable )
                 {
-                    Servers.TryMark( connection.CurrentEndPoint, ServerQuality.Bad );
+                    Servers.TryMark( connection.CurrentEndPoint, connection.ProtocolTypes, ServerQuality.Bad );
                 }
             }
         }
@@ -591,10 +545,9 @@ namespace SteamKit2.Internal
             {
                 var type = ( EServerType )server.server_type;
 
-                HashSet<IPEndPoint> endpointSet;
-                if ( !serverMap.TryGetValue( type, out endpointSet ) )
+                if ( !serverMap.TryGetValue( type, out var endpointSet ) )
                 {
-                    serverMap[ type ] = endpointSet = new HashSet<IPEndPoint>();
+                    serverMap[type] = endpointSet = new HashSet<IPEndPoint>();
                 }
 
                 endpointSet.Add( new IPEndPoint( NetHelpers.GetIPAddress( server.server_ip ), ( int )server.server_port ) );
@@ -606,10 +559,12 @@ namespace SteamKit2.Internal
             DebugLog.Assert( cmMsg.Body.cm_addresses.Count == cmMsg.Body.cm_ports.Count, "CMClient", "HandleCMList received malformed message" );
 
             var cmList = cmMsg.Body.cm_addresses
-                .Zip( cmMsg.Body.cm_ports, ( addr, port ) => new IPEndPoint( NetHelpers.GetIPAddress( addr ), ( int )port ) );
+                .Zip( cmMsg.Body.cm_ports, ( addr, port ) => ServerRecord.CreateSocketServer( new IPEndPoint( NetHelpers.GetIPAddress( addr ) , ( int )port ) ) );
+
+            var webSocketList = cmMsg.Body.cm_websocket_addresses.Select( addr => ServerRecord.CreateWebSocketServer( addr ) );
 
             // update our list with steam's list of CMs
-            Servers.ReplaceList( cmList );
+            Servers.ReplaceList( cmList.Concat( webSocketList ) );
         }
         void HandleSessionToken( IPacketMsg packetMsg )
         {
@@ -626,16 +581,23 @@ namespace SteamKit2.Internal
     public interface ICMClient
     {
         /// <summary>
+        /// The configuration for this client.
+        /// </summary>
+        SteamConfiguration Configuration { get; }
+        /// <summary>
+        /// Bootstrap list of CM servers.
+        /// </summary>
+        SmartCMServerList Servers { get; }
+        /// <summary>
         /// Returns the the local IP of this client.
         /// </summary>
         /// <returns>The local IP.</returns>
         IPAddress LocalIP { get; }
         /// <summary>
-        /// Gets the connected universe of this client.
-        /// This value will be <see cref="EUniverse.Invalid"/> if the client is not connected to Steam.
+        /// Gets the universe of this client.
         /// </summary>
         /// <value>The universe.</value>
-        EUniverse ConnectedUniverse { get; }
+        EUniverse Universe { get; }
         /// <summary>
         /// Gets a value indicating whether this instance is connected to the remote CM server.
         /// </summary>
@@ -666,12 +628,11 @@ namespace SteamKit2.Internal
         SteamID SteamID { get; }
         /// <summary>
         /// Gets or sets the connection timeout used when connecting to the Steam server.
-        /// The default value is 5 seconds.
         /// </summary>
         /// <value>
         /// The connection timeout.
         /// </value>
-        TimeSpan ConnectionTimeout { get; set; }
+        TimeSpan ConnectionTimeout { get; }
         /// <summary>
         /// Gets or sets the network listening interface. Use this for debugging only.
         /// For your convenience, you can use <see cref="NetHookNetworkListener"/> class.
@@ -688,10 +649,10 @@ namespace SteamKit2.Internal
         /// preferrably after a short delay.
         /// </summary>
         /// <param name="cmServer">
-        /// The <see cref="IPEndPoint"/> of the CM server to connect to.
+        /// The <see cref="ServerRecord"/> of the CM server to connect to.
         /// If <c>null</c>, SteamKit will randomly select a CM server from its internal list.
         /// </param>
-        void Connect(IPEndPoint cmServer = null);
+        void Connect(ServerRecord cmServer = null);
         /// <summary>
         /// Disconnects this client.
         /// </summary>

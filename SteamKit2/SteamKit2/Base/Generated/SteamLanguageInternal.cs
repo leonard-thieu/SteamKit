@@ -355,7 +355,7 @@ namespace SteamKit2.Internal
 			bw.Write( HeaderLength );
 			bw.Write( msProto.ToArray() );
 
-			msProto.Close();
+			msProto.Dispose();
 		}
 
 		public void Deserialize( Stream stream )
@@ -399,7 +399,7 @@ namespace SteamKit2.Internal
 			bw.Write( HeaderLength );
 			bw.Write( msProto.ToArray() );
 
-			msProto.Close();
+			msProto.Dispose();
 		}
 
 		public void Deserialize( Stream stream )
@@ -1952,76 +1952,6 @@ namespace SteamKit2.Internal
 			clientSuppliedSteamId = br.ReadUInt64();
 			IpPublic = br.ReadUInt32();
 			ServerRealTime = br.ReadUInt32();
-		}
-	}
-
-	public class MsgClientSendGuestPass : ISteamSerializableMessage
-	{
-		#pragma warning disable 0612
-		public EMsg GetEMsg() { return EMsg.ClientSendGuestPass; }
-		#pragma warning restore 0612
-
-		// Static size: 8
-		public ulong GiftId { get; set; }
-		// Static size: 1
-		public byte GiftType { get; set; }
-		// Static size: 4
-		public uint AccountId { get; set; }
-
-		public MsgClientSendGuestPass()
-		{
-			GiftId = 0;
-			GiftType = 0;
-			AccountId = 0;
-		}
-
-		public void Serialize(Stream stream)
-		{
-			BinaryWriter bw = new BinaryWriter( stream );
-
-			bw.Write( GiftId );
-			bw.Write( GiftType );
-			bw.Write( AccountId );
-
-		}
-
-		public void Deserialize( Stream stream )
-		{
-			BinaryReader br = new BinaryReader( stream );
-
-			GiftId = br.ReadUInt64();
-			GiftType = br.ReadByte();
-			AccountId = br.ReadUInt32();
-		}
-	}
-
-	public class MsgClientSendGuestPassResponse : ISteamSerializableMessage
-	{
-		#pragma warning disable 0612
-		public EMsg GetEMsg() { return EMsg.ClientSendGuestPassResponse; }
-		#pragma warning restore 0612
-
-		// Static size: 4
-		public EResult Result { get; set; }
-
-		public MsgClientSendGuestPassResponse()
-		{
-			Result = 0;
-		}
-
-		public void Serialize(Stream stream)
-		{
-			BinaryWriter bw = new BinaryWriter( stream );
-
-			bw.Write( (int)Result );
-
-		}
-
-		public void Deserialize( Stream stream )
-		{
-			BinaryReader br = new BinaryReader( stream );
-
-			Result = (EResult)br.ReadInt32();
 		}
 	}
 

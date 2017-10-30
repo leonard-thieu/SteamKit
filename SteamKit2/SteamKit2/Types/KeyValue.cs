@@ -272,6 +272,11 @@ namespace SteamKit2
         {
             get
             {
+                if ( key == null )
+                {
+                    throw new ArgumentNullException( nameof(key) );
+                }
+
                 var child = this.Children
                     .FirstOrDefault( c => string.Equals( c.Name, key, StringComparison.OrdinalIgnoreCase ) );
 
@@ -284,6 +289,11 @@ namespace SteamKit2
             }
             set
             {
+                if ( key == null )
+                {
+                    throw new ArgumentNullException( nameof(key) );
+                }
+
                 var existingChild = this.Children
                     .FirstOrDefault( c => string.Equals( c.Name, key, StringComparison.OrdinalIgnoreCase ) );
 
@@ -500,25 +510,6 @@ namespace SteamKit2
         /// Attempts to load the given filename as a binary <see cref="KeyValue"/>.
         /// </summary>
         /// <param name="path">The path to the file to load.</param>
-        /// <returns>a <see cref="KeyValue"/> instance if the load was successful, or <c>null</c> on failure.</returns>
-        [Obsolete( "Use TryReadAsBinary instead. Note that TryLoadAsBinary returns the root object, not a dummy parent node containg the root object." )]
-        public static KeyValue LoadAsBinary( string path )
-        {
-            var kv = LoadFromFile( path, true );
-            if (kv == null)
-            {
-                return null;
-            }
-
-            var parent = new KeyValue();
-            parent.Children.Add(kv);
-            return parent;
-        }
-
-        /// <summary>
-        /// Attempts to load the given filename as a binary <see cref="KeyValue"/>.
-        /// </summary>
-        /// <param name="path">The path to the file to load.</param>
         /// <param name="keyValue">The resulting <see cref="KeyValue"/> object if the load was successful, or <c>null</c> if unsuccessful.</param>
         /// <returns><c>true</c> if the load was successful, or <c>false</c> on failure.</returns>
         public static bool TryLoadAsBinary( string path, out KeyValue keyValue )
@@ -575,6 +566,11 @@ namespace SteamKit2
         /// </remarks>
         public static KeyValue LoadFromString( string input )
         {
+            if ( input == null )
+            {
+                throw new ArgumentNullException( nameof(input) );
+            }
+
             byte[] bytes = Encoding.UTF8.GetBytes( input );
 
             using ( MemoryStream stream = new MemoryStream( bytes ) )
@@ -602,6 +598,11 @@ namespace SteamKit2
         /// <returns><c>true</c> if the read was successful; otherwise, <c>false</c>.</returns>
         public bool ReadAsText( Stream input )
         {
+            if ( input == null )
+            {
+                throw new ArgumentNullException( nameof(input) );
+            }
+
             this.Children = new List<KeyValue>();
 
             new KVTextReader( this, input );
@@ -641,7 +642,9 @@ namespace SteamKit2
                 }
 
                 if ( name.StartsWith( "}" ) && !wasQuoted )	// top level closed, stop reading
+                {
                     break;
+                }
 
                 KeyValue dat = new KeyValue( name );
                 dat.Children = new List<KeyValue>();
@@ -657,10 +660,14 @@ namespace SteamKit2
                 }
 
                 if ( value == null )
+                {
                     throw new Exception( "RecursiveLoadFromBuffer:  got NULL key" );
+                }
 
                 if ( value.StartsWith( "}" ) && !wasQuoted )
+                {
                     throw new Exception( "RecursiveLoadFromBuffer:  got } in key" );
+                }
 
                 if ( value.StartsWith( "{" ) && !wasQuoted )
                 {
@@ -699,6 +706,11 @@ namespace SteamKit2
         /// <param name="asBinary">If set to <c>true</c>, saves this instance as binary.</param>
         public void SaveToStream( Stream stream, bool asBinary )
         {
+            if ( stream == null )
+            {
+                throw new ArgumentNullException( nameof(stream) );
+            }
+
             if (asBinary)
             {
                 RecursiveSaveBinaryToStream( stream );
@@ -796,21 +808,13 @@ namespace SteamKit2
         /// </summary>
         /// <param name="input">The input <see cref="Stream"/> to read from.</param>
         /// <returns><c>true</c> if the read was successful; otherwise, <c>false</c>.</returns>
-        [Obsolete( "Use TryReadAsBinary instead. Note that TryReadAsBinary returns the root object, not a dummy parent node containg the root object." )]
-        public bool ReadAsBinary( Stream input )
-        {
-            var dummyChild = new KeyValue();
-            this.Children.Add( dummyChild );
-            return dummyChild.TryReadAsBinary( input );
-        }
-
-        /// <summary>
-        /// Populate this instance from the given <see cref="Stream"/> as a binary <see cref="KeyValue"/>.
-        /// </summary>
-        /// <param name="input">The input <see cref="Stream"/> to read from.</param>
-        /// <returns><c>true</c> if the read was successful; otherwise, <c>false</c>.</returns>
         public bool TryReadAsBinary( Stream input )
         {
+            if ( input == null )
+            {
+                throw new ArgumentNullException( nameof(input) );
+            }
+            
             return TryReadAsBinaryCore( input, this, null );
         }
 
