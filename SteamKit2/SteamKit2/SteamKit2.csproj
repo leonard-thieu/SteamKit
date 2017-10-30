@@ -15,6 +15,7 @@
 
   <PropertyGroup>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SteamKit2.xml</DocumentationFile>
+    <PackageId>toofz.SteamKit2</PackageId>
   </PropertyGroup>
   
   <ItemGroup>
