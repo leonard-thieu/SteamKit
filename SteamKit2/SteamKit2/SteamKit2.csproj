@@ -2,20 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>4.0.2</Version>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyOriginatorKeyFile>..\..\SteamKit.snk</AssemblyOriginatorKeyFile>
-    <PackageReleaseNotes>Release notes are available at https://github.com/SteamRE/SteamKit/releases/tag/2.0.0-Beta.1</PackageReleaseNotes>
+    <PackageId>toofz.SteamKit2</PackageId>
+    <PackageVersion>4.0.2</PackageVersion>
+    <Title>toofz Services Core</Title>
+    <Description>Common code for services.</Description>
+    <Copyright>Copyright © Leonard Thieu 2017</Copyright>
+    <PackageLicenseUrl>https://github.com/leonard-thieu/SteamKit/blob/7f3f502257e8d4989b79fe2fa5a3e2dda068971a/SteamKit2/SteamKit2/license.txt</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/leonard-thieu/SteamKit</PackageProjectUrl>
     <PackageIconUrl>https://raw.github.com/SteamRE/SteamKit/master/Resources/Misc/steamkit_logo_128.png</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/SteamRE/SteamKit</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/SteamRE/SteamKit/blob/master/SteamKit2/SteamKit2/license.txt</PackageLicenseUrl>
-    <RepositoryUrl>https://github.com/SteamRE/SteamKit</RepositoryUrl>
+    <RepositoryUrl>https://github.com/leonard-thieu/SteamKit.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <PropertyGroup>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SteamKit2.xml</DocumentationFile>
-    <PackageId>toofz.SteamKit2</PackageId>
   </PropertyGroup>
   
   <ItemGroup>
