@@ -40,7 +40,7 @@ namespace SteamKit2
 
         public event EventHandler<DisconnectedEventArgs> Disconnected;
 
-        public EndPoint CurrentEndPoint { get; private set; }
+        public EndPoint CurrentEndPoint => destination;
 
         public ProtocolTypes ProtocolTypes => ProtocolTypes.Tcp;
 

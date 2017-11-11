@@ -40,6 +40,8 @@ namespace SteamKit2.Internal
         /// <returns>The local IP.</returns>
         public IPAddress LocalIP => connection.GetLocalIP();
 
+        public IPAddress RemoteIP => (connection.CurrentEndPoint as IPEndPoint)?.Address;
+
         /// <summary>
         /// Gets the universe of this client.
         /// </summary>
@@ -593,6 +595,7 @@ namespace SteamKit2.Internal
         /// </summary>
         /// <returns>The local IP.</returns>
         IPAddress LocalIP { get; }
+        IPAddress RemoteIP { get; }
         /// <summary>
         /// Gets the universe of this client.
         /// </summary>
