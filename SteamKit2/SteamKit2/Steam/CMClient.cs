@@ -35,11 +35,14 @@ namespace SteamKit2.Internal
         public SmartCMServerList Servers => Configuration.ServerList;
 
         /// <summary>
-        /// Returns the the local IP of this client.
+        /// Returns the local IP of this client.
         /// </summary>
         /// <returns>The local IP.</returns>
         public IPAddress LocalIP => connection.GetLocalIP();
 
+        /// <summary>
+        /// Returns the remote IP of the connection.
+        /// </summary>
         public IPAddress RemoteIP => (connection.CurrentEndPoint as IPEndPoint)?.Address;
 
         /// <summary>
@@ -591,10 +594,13 @@ namespace SteamKit2.Internal
         /// </summary>
         SmartCMServerList Servers { get; }
         /// <summary>
-        /// Returns the the local IP of this client.
+        /// Returns the local IP of this client.
         /// </summary>
         /// <returns>The local IP.</returns>
         IPAddress LocalIP { get; }
+        /// <summary>
+        /// Returns the remote IP of the connection.
+        /// </summary>
         IPAddress RemoteIP { get; }
         /// <summary>
         /// Gets the universe of this client.
