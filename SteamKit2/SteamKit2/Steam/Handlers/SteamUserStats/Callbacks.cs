@@ -80,12 +80,8 @@ namespace SteamKit2
         /// <summary>
         /// This callback is fired in response to <see cref="FindLeaderboard" /> and <see cref="CreateLeaderboard" />.
         /// </summary>
-        public interface IFindOrCreateLeaderboardCallback : ICallbackMsg
+        public interface IFindOrCreateLeaderboardCallback : IResultCallbackMsg
         {
-            /// <summary>
-            /// Gets the result of the request.
-            /// </summary>
-            EResult Result { get; }
             /// <summary>
             /// Leaderboard ID.
             /// </summary>
@@ -219,12 +215,8 @@ namespace SteamKit2
         /// <summary>
         /// This callback is fired in response to <see cref="GetLeaderboardEntries" />.
         /// </summary>
-        public interface ILeaderboardEntriesCallback : ICallbackMsg
+        public interface ILeaderboardEntriesCallback : IResultCallbackMsg
         {
-            /// <summary>
-            /// Gets the result of the request.
-            /// </summary>
-            EResult Result { get; }
             /// <summary>
             /// How many entires there are for requested leaderboard.
             /// </summary>

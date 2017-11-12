@@ -7,6 +7,17 @@
 namespace SteamKit2
 {
     /// <summary>
+    /// A callback message with a result
+    /// </summary>
+    public interface IResultCallbackMsg : ICallbackMsg
+    {
+        /// <summary>
+        /// Gets the result of the request.
+        /// </summary>
+        EResult Result { get; }
+    }
+
+    /// <summary>
     /// A callback message
     /// </summary>
     public interface ICallbackMsg
