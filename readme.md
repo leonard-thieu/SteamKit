@@ -1,10 +1,12 @@
 # SteamKit2
 
+**Note**: Forked from https://github.com/SteamRE/SteamKit.
+
 [![Build status](https://ci.appveyor.com/api/projects/status/rvbwhn15yiooeyi3/branch/master2?svg=true)](https://ci.appveyor.com/project/leonard-thieu/steamkit/branch/master2)
 [![MyGet](https://img.shields.io/myget/toofz/v/toofz.SteamKit2.svg)](https://www.myget.org/feed/toofz/package/nuget/toofz.SteamKit2)
 
 SteamKit2 is a .NET library designed to interoperate with Valve's [Steam network](http://store.steampowered.com/about). 
-It aims to provide a simple, yet extensible, interface to perform various actions on the network. Forked from https://github.com/SteamRE/SteamKit.
+It aims to provide a simple, yet extensible, interface to perform various actions on the network.
 
 
 ## Getting Binaries
