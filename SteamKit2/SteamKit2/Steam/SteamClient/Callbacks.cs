@@ -17,18 +17,26 @@ namespace SteamKit2
         /// <summary>
         /// This callback is received after attempting to connect to the Steam network.
         /// </summary>
-        public sealed class ConnectedCallback : CallbackMsg
+        public sealed class ConnectedCallback : CallbackMsg, IConnectedCallback
         {
             internal ConnectedCallback()
             {
             }
         }
 
+        /// <summary>
+        /// This callback is received after attempting to connect to the Steam network.
+        /// </summary>
+        public interface IConnectedCallback : ICallbackMsg
+        {
+
+        }
+
 
         /// <summary>
         /// This callback is received when the steamclient is physically disconnected from the Steam network.
         /// </summary>
-        public sealed class DisconnectedCallback : CallbackMsg
+        public sealed class DisconnectedCallback : CallbackMsg, IDisconnectedCallback
         {
             /// <summary>
             /// If true, the disconnection was initiated by calling <see cref="CMClient.Disconnect"/>.
@@ -41,6 +49,19 @@ namespace SteamKit2
             {
                 this.UserInitiated = userInitiated;
             }
+        }
+
+        /// <summary>
+        /// This callback is received when the steamclient is physically disconnected from the Steam network.
+        /// </summary>
+        public interface IDisconnectedCallback : ICallbackMsg
+        {
+            /// <summary>
+            /// If true, the disconnection was initiated by calling <see cref="CMClient.Disconnect"/>.
+            /// If false, the disconnection was the cause of something not user-controlled, such as a network failure or
+            /// a forcible disconnection by the remote server.
+            /// </summary>
+            bool UserInitiated { get; }
         }
 
 

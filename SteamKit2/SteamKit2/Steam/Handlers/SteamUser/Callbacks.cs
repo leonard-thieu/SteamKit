@@ -19,7 +19,7 @@ namespace SteamKit2
         /// <summary>
         /// This callback is returned in response to an attempt to log on to the Steam3 network through <see cref="SteamUser"/>.
         /// </summary>
-        public sealed class LoggedOnCallback : CallbackMsg
+        public sealed class LoggedOnCallback : CallbackMsg, ILoggedOnCallback
         {
             /// <summary>
             /// Gets the result of the logon.
@@ -169,6 +169,89 @@ namespace SteamKit2
             {
                 this.Result = result;
             }
+        }
+
+        /// <summary>
+        /// This callback is returned in response to an attempt to log on to the Steam3 network through <see cref="SteamUser"/>.
+        /// </summary>
+        public interface ILoggedOnCallback : ICallbackMsg
+        {
+            /// <summary>
+            /// Gets the account flags assigned by the server.
+            /// </summary>
+            EAccountFlags AccountFlags { get; }
+            /// <summary>
+            /// Gets the Steam2 CellID.
+            /// </summary>
+            uint CellID { get; }
+            /// <summary>
+            /// Gets the Steam2 CellID ping threshold.
+            /// </summary>
+            uint CellIDPingThreshold { get; }
+            /// <summary>
+            /// Gets the client steam ID.
+            /// </summary>
+            SteamID ClientSteamID { get; }
+            /// <summary>
+            /// Gets the email domain.
+            /// </summary>
+            string EmailDomain { get; }
+            /// <summary>
+            /// Gets the extended result of the logon.
+            /// </summary>
+            EResult ExtendedResult { get; }
+            /// <summary>
+            /// Gets the in game secs per heartbeat value.
+            /// This is used internally by SteamKit to initialize heartbeating.
+            /// </summary>
+            int InGameSecsPerHeartbeat { get; }
+            /// <summary>
+            /// Gets the IP country code.
+            /// </summary>
+            string IPCountryCode { get; }
+            /// <summary>
+            /// Gets the threshold for disconnects before Steam wants the client to migrate to a new CM.
+            /// </summary>
+            int NumDisconnectsToMigrate { get; }
+            /// <summary>
+            /// Gets the threshold for login failures before Steam wants the client to migrate to a new CM.
+            /// </summary>
+            int NumLoginFailuresToMigrate { get; }
+            /// <summary>
+            /// Gets the out of game secs per heartbeat value.
+            /// This is used internally by SteamKit to initialize heartbeating.
+            /// </summary>
+            int OutOfGameSecsPerHeartbeat { get; }
+            /// <summary>
+            /// Gets or sets the public IP of the client
+            /// </summary>
+            IPAddress PublicIP { get; }
+            /// <summary>
+            /// Gets the result of the logon.
+            /// </summary>
+            EResult Result { get; }
+            /// <summary>
+            /// Gets the Steam3 server time.
+            /// </summary>
+            DateTime ServerTime { get; }
+            /// <summary>
+            /// Gets the Steam2 ticket.
+            /// This is used for authenticated content downloads in Steam2.
+            /// This field will only be set when <see cref="LogOnDetails.RequestSteam2Ticket"/> has been set to <c>true</c>.
+            /// </summary>
+            byte[] Steam2Ticket { get; }
+            /// <summary>
+            /// Gets a value indicating whether the client should use PICS.
+            /// </summary>
+            bool UsePICS { get; }
+            /// <summary>
+            /// Gets the vanity URL.
+            /// </summary>
+            string VanityURL { get; }
+            /// <summary>
+            /// Gets the WebAPI authentication user nonce.
+            /// </summary>
+            string WebAPIUserNonce { get; }
         }
 
         /// <summary>
