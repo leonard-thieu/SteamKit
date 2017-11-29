@@ -6,13 +6,14 @@
 using System;
 using System.Collections.Generic;
 using SteamKit2.Internal;
+using static SteamKit2.SteamUser;
 
 namespace SteamKit2
 {
     /// <summary>
     /// This handler handles all user log on/log off related actions and callbacks.
     /// </summary>
-    public sealed partial class SteamUser : ClientMsgHandler
+    public sealed partial class SteamUser : ClientMsgHandler, ISteamUser
     {
 
         /// <summary>
@@ -591,5 +592,61 @@ namespace SteamKit2
             this.Client.PostCallback( callback );
         }
         #endregion
+    }
+
+    /// <summary>
+    /// This handler handles all user log on/log off related actions and callbacks.
+    /// </summary>
+    public interface ISteamUser : IClientMsgHandler
+    {
+        /// <summary>
+        /// Gets the SteamID of this client. This value is assigned after a logon attempt has succeeded.
+        /// </summary>
+        /// <value>The SteamID.</value>
+        SteamID SteamID { get; }
+
+        /// <summary>
+        /// Accepts the new Login Key provided by a <see cref="LoginKeyCallback"/>.
+        /// </summary>
+        /// <param name="callback">The callback containing the new Login Key.</param>
+        void AcceptNewLoginKey(LoginKeyCallback callback);
+        /// <summary>
+        /// Informs the Steam servers that this client wishes to log off from the network.
+        /// The Steam server will disconnect the client, and a <see cref="SteamClient.DisconnectedCallback"/> will be posted.
+        /// </summary>
+        void LogOff();
+        /// <summary>
+        /// Logs the client into the Steam3 network as an anonymous user.
+        /// The client should already have been connected at this point.
+        /// Results are returned in a <see cref="LoggedOnCallback"/>.
+        /// </summary>
+        /// <param name="details">The details to use for logging on.</param>
+        void LogOn(LogOnDetails details);
+        /// <summary>
+        /// Logs the client into the Steam3 network as an anonymous user.
+        /// The client should already have been connected at this point.
+        /// Results are returned in a <see cref="LoggedOnCallback"/>.
+        /// </summary>
+        void LogOnAnonymous();
+        /// <summary>
+        /// Logs the client into the Steam3 network as an anonymous user.
+        /// The client should already have been connected at this point.
+        /// Results are returned in a <see cref="LoggedOnCallback"/>.
+        /// </summary>
+        /// <param name="details">The details to use for logging on.</param>
+        void LogOnAnonymous(AnonymousLogOnDetails details);
+        /// <summary>
+        /// Requests a new WebAPI authentication user nonce.
+        /// Results are returned in a <see cref="WebAPIUserNonceCallback"/>.
+        /// The returned <see cref="AsyncJob{T}"/> can also be awaited to retrieve the callback result.
+        /// </summary>
+        /// <returns>The Job ID of the request. This can be used to find the appropriate <see cref="WebAPIUserNonceCallback"/>.</returns>
+        AsyncJob<WebAPIUserNonceCallback> RequestWebAPIUserNonce();
+        /// <summary>
+        /// Sends a machine auth response.
+        /// This should normally be used in response to a <see cref="UpdateMachineAuthCallback"/>.
+        /// </summary>
+        /// <param name="details">The details pertaining to the response.</param>
+        void SendMachineAuthResponse(MachineAuthDetails details);
     }
 }

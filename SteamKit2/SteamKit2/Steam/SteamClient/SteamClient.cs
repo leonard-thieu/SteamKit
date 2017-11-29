@@ -95,7 +95,7 @@ namespace SteamKit2
         /// </summary>
         /// <param name="handler">The handler to add.</param>
         /// <exception cref="InvalidOperationException">A handler of that type is already registered.</exception>
-        public void AddHandler( ClientMsgHandler handler )
+        public void AddHandler(IClientMsgHandler handler )
         {
             if ( handlers.Contains( handler.GetType() ) )
             {
@@ -119,7 +119,7 @@ namespace SteamKit2
         /// Removes a registered handler.
         /// </summary>
         /// <param name="handler">The handler to remove.</param>
-        public void RemoveHandler( ClientMsgHandler handler )
+        public void RemoveHandler(IClientMsgHandler handler )
         {
             this.RemoveHandler( handler.GetType() );
         }
@@ -132,16 +132,16 @@ namespace SteamKit2
         /// A registered handler on success, or null if the handler could not be found.
         /// </returns>
         public T GetHandler<T>()
-            where T : ClientMsgHandler
+            where T : IClientMsgHandler
         {
             Type type = typeof( T );
 
             if ( handlers.Contains( type ) )
             {
-                return handlers[ type ] as T;
+                return (T)handlers[ type ];
             }
 
-            return null;
+            return default(T);
         }
         #endregion
 
@@ -429,7 +429,7 @@ namespace SteamKit2
         /// </summary>
         /// <param name="handler">The handler to add.</param>
         /// <exception cref="InvalidOperationException">A handler of that type is already registered.</exception>
-        void AddHandler(ClientMsgHandler handler);
+        void AddHandler(IClientMsgHandler handler);
         /// <summary>
         /// Removes a registered handler by name.
         /// </summary>
@@ -439,7 +439,7 @@ namespace SteamKit2
         /// Removes a registered handler.
         /// </summary>
         /// <param name="handler">The handler to remove.</param>
-        void RemoveHandler(ClientMsgHandler handler);
+        void RemoveHandler(IClientMsgHandler handler);
         /// <summary>
         /// Returns a registered handler.
         /// </summary>
@@ -447,7 +447,7 @@ namespace SteamKit2
         /// <returns>
         /// A registered handler on success, or null if the handler could not be found.
         /// </returns>
-        T GetHandler<T>() where T : ClientMsgHandler;
+        T GetHandler<T>() where T : IClientMsgHandler;
         /// <summary>
         /// Gets the next callback object in the queue.
         /// This function does not dequeue the callback, you must call FreeLastCallback after processing it.
