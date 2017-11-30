@@ -134,14 +134,7 @@ namespace SteamKit2
         public T GetHandler<T>()
             where T : IClientMsgHandler
         {
-            Type type = typeof( T );
-
-            if ( handlers.Contains( type ) )
-            {
-                return (T)handlers[ type ];
-            }
-
-            return default(T);
+            return handlers.Values.OfType<T>().FirstOrDefault();
         }
         #endregion
 

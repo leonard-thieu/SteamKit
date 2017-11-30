@@ -27,7 +27,8 @@ namespace Tests
 			Assert.NotNull(steamClient.GetHandler<SteamTrading>());
 			Assert.NotNull(steamClient.GetHandler<SteamUnifiedMessages>());
 			Assert.NotNull(steamClient.GetHandler<SteamScreenshots>());
-		}
+            Assert.NotNull(steamClient.GetHandler<ISteamUser>());
+        }
 
 		[Fact]
 		public void AddHandlerAddsHandler()
