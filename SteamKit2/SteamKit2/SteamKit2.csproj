@@ -7,9 +7,12 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>
+      $(AllowedOutputExtensionsInPackageBuildOutputFolder);
+      .pdb
+    </AllowedOutputExtensionsInPackageBuildOutputFolder>
     <PackageId>toofz.SteamKit2</PackageId>
-    <PackageVersion>4.3.2</PackageVersion>
+    <PackageVersion>4.3.3</PackageVersion>
     <PackageLicenseUrl>https://github.com/leonard-thieu/SteamKit/blob/7f3f502257e8d4989b79fe2fa5a3e2dda068971a/SteamKit2/SteamKit2/license.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/leonard-thieu/SteamKit</PackageProjectUrl>
     <PackageIconUrl>https://raw.github.com/SteamRE/SteamKit/master/Resources/Misc/steamkit_logo_128.png</PackageIconUrl>
