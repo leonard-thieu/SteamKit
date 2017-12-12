@@ -257,7 +257,7 @@ namespace SteamKit2
         /// <summary>
         /// This callback is returned when the client is told to log off by the server.
         /// </summary>
-        public sealed class LoggedOffCallback : CallbackMsg
+        public sealed class LoggedOffCallback : CallbackMsg, ILoggedOffCallback
         {
             /// <summary>
             /// Gets the result of the log off.
@@ -270,6 +270,18 @@ namespace SteamKit2
             {
                 this.Result = result;
             }
+        }
+
+        /// <summary>
+        /// This callback is returned when the client is told to log off by the server.
+        /// </summary>
+        public interface ILoggedOffCallback : ICallbackMsg
+        {
+            /// <summary>
+            /// Gets the result of the log off.
+            /// </summary>
+            /// <value>The result.</value>
+            EResult Result { get; }
         }
 
         /// <summary>
