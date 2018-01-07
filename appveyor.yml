@@ -28,5 +28,5 @@ build:
 
 deploy_script:
   - ps: |
-      $projectPath = Resolve-Path .\SteamKit2\SteamKit2\SteamKit2.csproj
+      $projectPath = Resolve-Path .\SteamKit2\SteamKit2.csproj
       msbuild $projectPath /nologo /verbosity:minimal /target:Pack /property:PublishPackage=$env:APPVEYOR_REPO_TAG
