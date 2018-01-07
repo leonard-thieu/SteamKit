@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -87,7 +86,7 @@ namespace SteamKit2
         /// </param>
         public void Connect( IPEndPoint ufsServer = null )
         {
-            DebugLog.Assert( steamClient.IsConnected, "UFSClient", "CMClient is not connected!" );
+            DebugLog.Assert( steamClient.IsConnected, nameof(UFSClient), "CMClient is not connected!" );
 
             Disconnect();
 
@@ -95,7 +94,14 @@ namespace SteamKit2
             {
                 var serverList = steamClient.GetServersOfType( EServerType.UFS );
 
-                Random random = new Random();
+                if ( serverList.Count == 0 )
+                {
+                    DebugLog.WriteLine( nameof(UFSClient), "No UFS server addresses were provided yet." );
+                    Disconnected( this, new DisconnectedEventArgs( userInitiated: false ) );
+                    return;
+                }
+
+                var random = new Random();
                 ufsServer = serverList[ random.Next( serverList.Count ) ];
             }
 
@@ -106,10 +112,9 @@ namespace SteamKit2
         /// Disconnects this client from the UFS server.
         /// a <see cref="DisconnectedCallback"/> will be posted upon disconnection.
         /// </summary>
-        public void Disconnect()
-        {
-            connection.Disconnect();
-        }
+        public void Disconnect() => Disconnect( userInitiated: true );
+
+        void Disconnect( bool userInitiated ) => connection.Disconnect( userInitiated );
 
         /// <summary>
         /// Represents all the information required to upload a file to the UFS server.
@@ -278,7 +283,7 @@ namespace SteamKit2
 
             msg.SteamID = steamClient.SteamID;
 
-            DebugLog.WriteLine( "UFSClient", "Sent -> EMsg: {0} {1}", msg.MsgType, msg.IsProto ? "(Proto)" : "" );
+            DebugLog.WriteLine( nameof(UFSClient), "Sent -> EMsg: {0} {1}", msg.MsgType, msg.IsProto ? "(Proto)" : "" );
 
             // we'll swallow any network failures here because they will be thrown later
             // on the network thread, and that will lead to a disconnect callback
@@ -314,7 +319,14 @@ namespace SteamKit2
         {
             var packetMsg = CMClient.GetPacketMsg( e.Data );
 
-            DebugLog.WriteLine( "UFSClient", "<- Recv'd EMsg: {0} ({1}) {2}", packetMsg.MsgType, ( int )packetMsg.MsgType, packetMsg.IsProto ? "(Proto)" : "" );
+            if ( packetMsg == null )
+            {
+                DebugLog.WriteLine( nameof(UFSClient), "Packet message failed to parse, shutting down connection");
+                Disconnect( userInitiated: false );
+                return;
+            }
+
+            DebugLog.WriteLine( nameof(UFSClient), "<- Recv'd EMsg: {0} ({1}) {2}", packetMsg.MsgType, ( int )packetMsg.MsgType, packetMsg.IsProto ? "(Proto)" : "" );
 
             var msgDispatch = new Dictionary<EMsg, Action<IPacketMsg>>
             {

@@ -15,6 +15,8 @@
     <PackageVersion>4.4.0</PackageVersion>
     <PackageLicenseUrl>https://github.com/leonard-thieu/SteamKit/blob/7f3f502257e8d4989b79fe2fa5a3e2dda068971a/SteamKit2/SteamKit2/license.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/leonard-thieu/SteamKit</PackageProjectUrl>
+    <Description>.NET library that aims to interoperate with the Steam network.</Description>
+    <PackageReleaseNotes>Release notes are available at https://github.com/SteamRE/SteamKit/releases/tag/2.0.0-Beta.1</PackageReleaseNotes>
     <PackageIconUrl>https://raw.github.com/SteamRE/SteamKit/master/Resources/Misc/steamkit_logo_128.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/leonard-thieu/SteamKit.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

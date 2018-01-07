@@ -139,7 +139,7 @@ namespace SteamKit2
         /// Disconnects this instance, blocking until the queue of messages is empty or the connection
         /// is otherwise terminated.
         /// </summary>
-        public void Disconnect()
+        public void Disconnect( bool userInitiated )
         {
             if ( netThread == null )
                 return;
@@ -160,7 +160,7 @@ namespace SteamKit2
             // Advance this the same way that steam does, when a socket gets reused.
             sourceConnId += 256;
 
-            Disconnected?.Invoke( this, new DisconnectedEventArgs( true ) );
+            Disconnected?.Invoke( this, new DisconnectedEventArgs( userInitiated ) );
         }
 
         /// <summary>
@@ -283,6 +283,13 @@ namespace SteamKit2
         {
             if ( DateTime.Now > nextResend && outSeqSent > outSeqAcked )
             {
+                // if we aren't able to clear the send queue during a Disconnect, don't bother retrying
+                if ( state == ( int )State.Disconnecting )
+                {
+                    outPackets.Clear();
+                    return;
+                }
+
                 DebugLog.WriteLine("UdpConnection", "Sequenced packet resend required");
 
                 // Don't send more than 3 (Steam behavior?)

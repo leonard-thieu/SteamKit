@@ -103,7 +103,7 @@ namespace SteamKit2.Internal
         object connectionLock = new object();
         CancellationTokenSource connectionCancellation;
         Task connectionSetupTask;
-        IConnection connection;
+        volatile IConnection connection;
 
         ScheduledFunction heartBeatFunc;
 
@@ -199,7 +199,9 @@ namespace SteamKit2.Internal
         /// <summary>
         /// Disconnects this client.
         /// </summary>
-        public void Disconnect()
+        public void Disconnect() => Disconnect( userInitiated: true ); 
+
+        void Disconnect( bool userInitiated)
         {
             lock ( connectionLock )
             {
@@ -220,7 +222,7 @@ namespace SteamKit2.Internal
                 }
 
                 // Connection implementations are required to issue the Disconnected callback before Disconnect() returns
-                connection?.Disconnect();
+                connection?.Disconnect( userInitiated );
                 Debug.Assert( connection == null );
             }
         }
@@ -397,21 +399,22 @@ namespace SteamKit2.Internal
 
         void Disconnected( object sender, DisconnectedEventArgs e )
         {
+            var connectionRelease = Interlocked.Exchange( ref connection, null );
+            if ( connectionRelease == null ) return;
+
             IsConnected = false;
 
             if ( !e.UserInitiated && !ExpectDisconnection )
             {
-                Servers.TryMark( connection.CurrentEndPoint, connection.ProtocolTypes, ServerQuality.Bad );
+                Servers.TryMark( connectionRelease.CurrentEndPoint, connectionRelease.ProtocolTypes, ServerQuality.Bad );
             }
 
             SessionID = null;
             SteamID = null;
 
-
-            connection.NetMsgReceived -= NetMsgReceived;
-            connection.Connected -= Connected;
-            connection.Disconnected -= Disconnected;
-            connection = null;
+            connectionRelease.NetMsgReceived -= NetMsgReceived;
+            connectionRelease.Connected -= Connected;
+            connectionRelease.Disconnected -= Disconnected;
 
             heartBeatFunc.Stop();
 
