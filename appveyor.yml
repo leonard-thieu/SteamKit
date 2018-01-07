@@ -22,7 +22,7 @@ notifications:
 before_build:
   - nuget restore -Verbosity quiet
 build:
-  project: \SteamKit2\SteamKit2.sln
+  project: SteamKit2\SteamKit2.sln
   verbosity: minimal
 
 deploy_script:
