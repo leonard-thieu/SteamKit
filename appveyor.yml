@@ -26,6 +26,8 @@ build:
   project: SteamKit2\SteamKit2.sln
   verbosity: minimal
 
+test: off
+
 deploy_script:
   - ps: |
       $projectPath = Resolve-Path .\SteamKit2\SteamKit2.csproj
